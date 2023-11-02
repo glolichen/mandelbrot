@@ -3,33 +3,45 @@
 
 #include <gmp.h>
 
-typedef struct BSTreeNode {
+typedef struct ImagBSTreeNode {
 	mpf_t key;
 	int value;
-	struct BSTreeNode *left, *right;
-} BSTreeNode;
+	struct ImagBSTreeNode *left, *right;
+} ImagBSTreeNode;
 
-// int has_left(const BSTreeNode *node);
-// int has_right(const BSTreeNode *node);
+typedef struct RealBSTreeNode {
+	mpf_t key;
+	ImagBSTreeNode *value;
+	struct RealBSTreeNode *left, *right;
+} RealBSTreeNode;
 
-// BSTreeNode *get_left(const BSTreeNode *node);
-// BSTreeNode *get_right(const BSTreeNode *node);
+typedef enum { INT, IMAGNODE, NOTHING } ValueDataType;
+typedef struct {
+	ValueDataType t;
+	union {
+		int integer;
+		ImagBSTreeNode *imagNode;
+	} data;
+} GenericBSTreeValue;
 
-// void set_left(BSTreeNode *node, BSTreeNode *add);
-// void set_right(BSTreeNode *node, BSTreeNode *add);
-
-// void get_key(mpf_t out, const BSTreeNode *node);
-// void set_key(BSTreeNode *node, mpf_t key);
-
-// int get_value(const BSTreeNode *node);
-// void set_value(BSTreeNode *node, int value);
+typedef enum { REAL, IMAG } NodeDataType;
+typedef struct {
+	NodeDataType t;
+	union {
+		RealBSTreeNode *realNode;
+		ImagBSTreeNode *imagNode;
+	} data;
+} GenericBSTreeNode;
 
 typedef struct {
-	BSTreeNode *root;
-} BSTree;
+	mpf_t matchRange;
+	GenericBSTreeNode *root;
+} GenericBSTree;
 
-void make_bstree(BSTree *tree);
-void bstree_add(BSTree *tree, mpf_t key, int value);
-int bstree_get(const BSTree *tree, mpf_t key, mpf_t match_range);
+void make_bstree(GenericBSTree *tree, mpf_t match_range);
+GenericBSTreeNode *bstree_node_add(GenericBSTreeNode *node, mpf_t key, GenericBSTreeValue *value);
+GenericBSTreeNode *bstree_add(GenericBSTree *tree, mpf_t key, GenericBSTreeValue *value);
+GenericBSTreeValue bstree_get(const GenericBSTree *tree, mpf_t key);
+void clear_bstree(GenericBSTree *tree);
 
 #endif
