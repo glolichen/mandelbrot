@@ -9,42 +9,60 @@
 
 // ./mandelbrot [greatest dimension] [bottom left real] [bottom left imag] [top right real] [top right imag]
 int main(int argc, char *argv[]) {
-	BSTree bst;
-	make_bstree(&bst);
+	// mpf_t range;
+	// mpf_init_set_d(range, 0.000000000001);
+
+	// GenericBSTree bst;
+	// make_bstree(&bst, range);
 	
-	mpf_t num;
-	mpf_init_set_d(num, 5828.12246);
+	// mpf_t key;
+	// mpf_init(key);
+	// GenericBSTreeValue value;
+	// value.t = INT;
 
-	bstree_add(&bst, num, 1203);
+	// mpf_set_d(key, 5828.12246);
+	// value.data.integer = 1203;
+	// bstree_add(&bst, key, &value);
+	
+	// mpf_set_d(key, 28.3939393939);
+	// value.data.integer = 1567;
+	// bstree_add(&bst, key, &value);
+	
+	// mpf_set_d(key, 6000.00000);
+	// value.data.integer = 2;
+	// bstree_add(&bst, key, &value);
+	
+	// mpf_set_d(key, 28.3939393939);
+	// value.data.integer = 2;
+	// bstree_add(&bst, key, &value);
+	
+	// mpf_set_d(key, 28.3939393939);
+	// printf("%d\n", bstree_get(&bst, key).data.integer);
+	
+	// mpf_set_d(key, 6000.00000);
+	// printf("%d\n", bstree_get(&bst, key).data.integer);
+	
+	// mpf_set_d(key, 5828.12246);
+	// printf("%d\n", bstree_get(&bst, key).data.integer);
 
-	printf("%d\n", bstree_get(&bst, num));
+	// clear_bstree(&bst);
 
-	// Complex num;
-	// complex_init_set_d(&num, -0.3900, -0.6630);
-	// printf("%d\n", get_iterations(&num));
-	// complex_clear(&num);
-
-	// complex_init_set_d(&num, -0.33, 0.6);
-	// printf("%d\n", get_iterations(&num));
-	// complex_clear(&num);
-
-	return 0;
+	// return 0;
 
 	assert(argc == 6);
 
 	int userProvided = atoi(argv[1]);
 
-	double bottomLeftReal = atof(argv[2]), bottomLeftImag = atof(argv[3]);
-	double topRightReal = atof(argv[4]), topRightImag = atof(argv[5]);
+	mpf_t bottomLeftReal, bottomLeftImag, topRightReal, topRightImag;
+	mpf_init_set_str(bottomLeftReal, argv[2], 10);
+	mpf_init_set_str(bottomLeftImag, argv[3], 10);
+	mpf_init_set_str(topRightReal, argv[4], 10);
+	mpf_init_set_str(topRightImag, argv[5], 10);
 
-	Complex bottomLeft, topRight;
-	complex_init_set_d(&bottomLeft, bottomLeftReal, bottomLeftImag);
-	complex_init_set_d(&topRight, topRightReal, topRightImag);
+	assert(mpf_cmp(bottomLeftReal, topRightReal) < 0);
+	assert(mpf_cmp(bottomLeftImag, topRightImag) < 0);
 
-	assert(mpf_cmp(bottomLeft.real, topRight.real) < 0);
-	assert(mpf_cmp(bottomLeft.imag, topRight.imag) < 0);
-
-	double wthRatio = (0.0 + topRightReal - bottomLeftReal) / (0.0 + topRightImag - bottomLeftImag);
+	double wthRatio = (0.0 + atof(argv[4]) - atof(argv[2])) / (0.0 + atof(argv[5]) - atof(argv[3]));
 	int width, height;
 
 	if (wthRatio >= 1) {
@@ -56,10 +74,12 @@ int main(int argc, char *argv[]) {
 		width = userProvided * wthRatio;
 	}
 
-	int res = write_png("mandelbrot.png", width, height, &bottomLeft, &topRight);
+	int res = write_png("mandelbrot.png", width, height, bottomLeftReal, bottomLeftImag, topRightReal, topRightImag);
 
-	complex_clear(&bottomLeft);
-	complex_clear(&topRight);
+	mpf_clear(bottomLeftReal);
+	mpf_clear(bottomLeftImag);
+	mpf_clear(topRightReal);
+	mpf_clear(topRightImag);
 
 	return res;
 }
