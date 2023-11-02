@@ -1,14 +1,10 @@
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <gmp.h>
 
 #include "bstree.h"
 
-void make_bstree_node(BSTreeNode *node, mpf_t key, int value) {
-	mpf_init_set(node->key, key);
-	node->value = value;
-	node->left = NULL, node->right = NULL;
-}
 int has_left(const BSTreeNode *node) {
 	return node->left != NULL;
 }
@@ -47,39 +43,54 @@ void set_value(BSTreeNode *node, int value) {
 void make_bstree(BSTree *tree) {
 	tree->root = NULL;
 }
-void bstree_add_node(BSTreeNode **node, mpf_t key, int value) {
-	if (*node == NULL) {
-		BSTreeNode newNode;
-		make_bstree_node(&newNode, key, value);
-		*node = &newNode;
-		return;
+BSTreeNode *bstree_add_node(BSTreeNode *node, mpf_t key, int value) {
+	if (node == NULL) {
+		BSTreeNode *newNode = (BSTreeNode *) malloc(sizeof(BSTreeNode));
+		mpf_init_set(newNode->key, key);
+		newNode->value = value;
+		newNode->left = NULL, newNode->right = NULL;
+		return newNode;
 	}
 
-	int cmp = mpf_cmp((*node)->key, key);
+	int cmp = mpf_cmp(key,node->key);
 	if (cmp == 0)
-		(*node)->value = value;
+		node->value = value;
 	else if (cmp < 0)
-		bstree_add_node(&(*node)->left, key, value);
+		node->left = bstree_add_node(node->left, key, value);
 	else
-		bstree_add_node(&(*node)->right, key, value);
+		node->right = bstree_add_node(node->right, key, value);
+
+	return node;
 }
 void bstree_add(BSTree *tree, mpf_t key, int value) {
-	bstree_add_node(&tree->root, key, value);
+	tree->root = bstree_add_node(tree->root, key, value);
 }
 
-int bstree_get_node(const BSTreeNode *node, mpf_t key) {
-	// gmp_printf("%.Ff\n", node->key);
-	if (node == NULL)
-		return 0;
-	int cmp = mpf_cmp(node->key, key);
-	if (cmp == 0)
+// key - match_range <= node->key <= key + match_range
+int bstree_get_node(const BSTreeNode *node, const mpf_t min_accept, const mpf_t max_accept) {
+	int cmpMin = mpf_cmp(node->key, min_accept);
+	int cmpMax = mpf_cmp(node->key, max_accept);
+
+	if (cmpMin > 0 && cmpMax < 0)
 		return node->value;
-	else if (has_left(node) && cmp < 0)
-		return bstree_get_node(node->left, key);
-	else if (has_right(node))
-		return bstree_get_node(node->right, key);
+	else if (has_left(node) && cmpMin < 0)
+		return bstree_get_node(node->right, min_accept, max_accept);
+	else if (has_right(node) && cmpMax > 0)
+		return bstree_get_node(node->left, min_accept, max_accept);
 	return -1;
 }
-int bstree_get(const BSTree *tree, mpf_t key) {
-	bstree_get_node(tree->root, key);
+int bstree_get(const BSTree *tree, mpf_t key, mpf_t match_range) {
+	mpf_t minAccept, maxAccept;
+	mpf_init_set(minAccept, key);
+	mpf_init_set(maxAccept, key);
+	mpf_sub(minAccept, minAccept, match_range);
+	mpf_add(maxAccept, maxAccept, match_range);
+
+	gmp_printf("[%.Ff, %.Ff]\n", minAccept, maxAccept);
+	int answer = bstree_get_node(tree->root, minAccept, maxAccept);
+
+	mpf_clear(minAccept);
+	mpf_clear(maxAccept);
+
+	return answer;
 }

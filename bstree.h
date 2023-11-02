@@ -30,6 +30,6 @@ typedef struct {
 
 void make_bstree(BSTree *tree);
 void bstree_add(BSTree *tree, mpf_t key, int value);
-int bstree_get(const BSTree *tree, mpf_t key);
+int bstree_get(const BSTree *tree, mpf_t key, mpf_t match_range);
 
 #endif
