@@ -2,108 +2,81 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <gmp.h>
+#include <stdbool.h>
+#include <omp.h>
 #include <png.h>
 
 #include "mandelbrot.h"
-#include "bstree.h"
+#include "linkedlist.h"
 
-#define ERROR 1
-#define MAX_ITERATION 1000
+#define PERIOD 9
 
-GenericBSTree past;
+const int Direction[4][2] = {
+	{ 0, 1 },
+	{ 1, 0 },
+	{ 0, -1 },
+	{ -1, 0 },
+};
 
-int get_iterations(const mpf_t real, const mpf_t imag) {
-	// algorithm from https://en.wikipedia.org/wiki/Plotting_algorithms_for_the_Mandelbrot_set#Continuous_(smooth)_coloring
+int get_iterations(double real, double imag, int max_iters) {
+	// https://en.wikipedia.org/wiki/Plotting_algorithms_for_the_Mandelbrot_set#Cardioid_/_bulb_checking
+	if ((real + 1.0) * (real + 1.0) + imag * imag <= 0.0625)
+		return max_iters;
+	double q = (real - 0.25) * (real - 0.25) + imag * imag;
+	if (q * (q + (real - 0.25)) <= (0.25 * imag * imag))
+		return max_iters;
 	
-	mpf_t x, y, x2, y2;
-	mpf_init_set_d(x, 0);
-	mpf_init_set_d(y, 0);
-	mpf_init(x2);
-	mpf_init(y2);
+	// algorithm from https://en.wikipedia.org/wiki/Plotting_algorithms_for_the_Mandelbrot_set#Continuous_(smooth)_coloring
+	double x = real, y = imag;
+	double x2, y2, tempReal;
 
-	int iters = 0;
-
-	mpf_t norm, temp;
-	mpf_init(norm);
-	mpf_init(temp);
-
-	for (; iters < MAX_ITERATION; iters++) {
-		GenericBSTreeValue pastValue = bstree_get(&past, x);
-		if (pastValue.t == IMAGNODE) {
-			printf("found match for real ");
-			ImagBSTreeNode *imagTree = pastValue.data.imagNode;
-			printf("%p\n", imagTree);
-		}
-
-		mpf_mul(x2, x, x);
-		mpf_mul(y2, y, y);
-
-		mpf_sub(temp, x2, y2);
-		mpf_add(temp, temp, real);
-
-		mpf_mul(y, x, y);
-		mpf_mul_ui(y, y, 2);
-		mpf_add(y, y, imag);
-
-		mpf_set(x, temp);
-
-		mpf_add(norm, x2, y2);
-		if (mpf_cmp_d(norm, 4.0) >= 0)
+	int iters = 1;
+	for (; iters < max_iters; iters++) {
+		x2 = x * x;
+		y2 = y * y;
+		tempReal = x2 - y2 + real;
+		y = x * y * 2 + imag;
+		x = tempReal;
+		if (x2 + y2 >= 4)
 			break;
 	}
-
-	mpf_clear(x);
-	mpf_clear(y);
-
-	mpf_clear(x2);
-	mpf_clear(y2);
-
-	mpf_clear(norm);
-	mpf_clear(temp);
 
 	return iters;
 }
 
 typedef struct {
 	int red, green, blue;
-} color_t;
+} Pixel;
 
-void get_color(color_t *color, int iter_count) {
+void get_color(Pixel *color, int iter_count) {
 	// floor value of log2 = the location of the largest bit set to 1, counting from the right
 	// the location of the largest bit from the left = __builtin_clz(int) - count leading zeros
 	// length of an int is 32 - to find value from right do 32 - x + 1 = 31 - x
+	if (iter_count == 0) {
+		color->red = 0, color->green = 0, color->blue = 0;
+		return;
+	}
 	int value = iter_count < 1000 ? 255 - 20 * (31 - __builtin_clz(iter_count)) : 0;
 	color->red = value, color->green = value, color->blue = value;
 }
 
 int write_png(const char *file_name, int width, int height, 
-			  const mpf_t bottom_left_real, const mpf_t bottom_left_imag,
-			  const mpf_t top_right_real, const mpf_t top_right_imag) {
-	mpf_t realChange, imagChange, change;
-	mpf_init(realChange);
-	mpf_init(imagChange);
-	mpf_sub(realChange, top_right_real, bottom_left_real);
-	mpf_sub(imagChange, top_right_imag, bottom_left_imag);
-	mpf_div_ui(realChange, realChange, width);
-	mpf_div_ui(imagChange, imagChange, height);
+			  double bottom_left_real, double bottom_left_imag,
+			  double top_right_real, double top_right_imag,	
+			  int max_iters, int thread_count) {
+	double realChange, imagChange, change;
+	realChange = (top_right_real - bottom_left_real) / width;
+	imagChange = (top_right_imag - bottom_left_imag) / height;
 
-	mpf_init(change);
-	mpf_add(change, realChange, imagChange);
-	mpf_div_ui(change, change, 2);
-
-	mpf_clear(realChange);
-	mpf_clear(imagChange);
-
-	FILE *fp;
-
+	change = (realChange + imagChange) / 2;
+	
 	png_structp png_ptr = NULL;
 	png_infop info_ptr = NULL;
 	png_byte **row_pointers = NULL;
 	int pixel_size = 3;
 	int depth = 8;
 	
-	fp = fopen(file_name, "wb");
+	FILE *fp = fopen(file_name, "wb");
 	if (!fp)
 		goto fopen_failed;
 
@@ -120,75 +93,86 @@ int write_png(const char *file_name, int width, int height,
 	
 	png_set_IHDR(png_ptr, info_ptr, width, height, depth, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 	
-	row_pointers = png_malloc(png_ptr, height * sizeof(png_byte *));
-	mpf_t real, imag;
-	mpf_init(real);
-	mpf_init(imag);
+	row_pointers = (png_byte **) png_malloc(png_ptr, height * sizeof(png_byte *));
 
-	color_t color;
+	int iters;
+	double real, imag;
+	Pixel color;
 
-	make_bstree(&past, change);
+	int *status = (int *) calloc((height * width) * sizeof(int), sizeof(int));
 
-	for (size_t y = 0; y < height; y++) {
+	#pragma omp parallel for
+	for (int i = 0; i < thread_count; i++) {
+		int topHeight = i * height / thread_count;
+		int bottomHeight = (i + 1) * height / thread_count;
+		
+		LinkedList linkedList; // either a stack or deque
+		make_linked_list(&linkedList);
+
+		for (int i = 0; i < width; i++) {
+			linked_list_add(&linkedList, topHeight * (width - 1) + i);
+			status[i] = 1;
+			linked_list_add(&linkedList, bottomHeight * (width - 1) + i);
+			status[height * (width - 1) + i] = 1;
+		}
+		for (int i = topHeight + 1; i < bottomHeight - 1; i++) {
+			linked_list_add(&linkedList, i * width);
+			status[i * width] = 1;
+			linked_list_add(&linkedList, i * width + width - 1);
+			status[i * width + width - 1] = 1;
+		}
+
+		int cur, cx, cy, nx, ny, index;
+		while (linkedList.size != 0) {
+			cur = linked_list_pop_front(&linkedList);
+			cx = cur % width, cy = cur / width;
+
+			real = bottom_left_real + change * cx;
+			imag = fabs(top_right_imag - change * cy);
+			iters = get_iterations(real, imag, max_iters);
+			status[cur] = iters << 1;
+			if (iters == max_iters)
+				continue;
+
+			for (int i = 0; i < 4; i++) {
+				nx = cx + Direction[i][0];
+				ny = cy + Direction[i][1];
+				if (nx < 0 || ny < topHeight || nx >= width || ny >= bottomHeight)	
+					continue;
+				index = ny * width + nx;
+				if (status[index] == 0) {
+					status[index] = 1;
+					linked_list_add(&linkedList, index);
+				}
+			}
+		}
+
+		free_linked_list(&linkedList);
+	}
+
+	for (int y = 0; y < height; y++) {
 		png_byte *row = png_malloc(png_ptr, sizeof(uint8_t) * width * pixel_size);
 		row_pointers[y] = row;
-		for (size_t x = 0; x < width; x++) {
-			// bottom left real + change * y
-			mpf_mul_ui(real, change, x);
-			mpf_add(real, bottom_left_real, real);
-
-			mpf_mul_ui(imag, change, y);
-			// top right imag - change * y
-			mpf_sub(imag, top_right_imag, imag);
-			// the mandelbrot set is symmetric over the x axis
-			mpf_abs(imag, imag);
-
-			int iterations = get_iterations(real, imag);
-
-			if (iterations == 1000) {
-				GenericBSTreeValue realValue = { .t = IMAGNODE, .data.imagNode = NULL };
-				GenericBSTreeNode *realNode = bstree_add(&past, real, &realValue);
-				GenericBSTreeValue imagValue = { .t = INT, .data.integer = iterations };
-				GenericBSTreeNode imagNode = { .t = IMAG, .data.imagNode = realNode->data.realNode->value };
-				bstree_node_add(&imagNode, imag, &imagValue);
-			}
-			// printf("%p\n", realNode->data.realNode->value);
-
-			// GenericBSTreeNode = { .t = IMAG, .data.imagNode =  }
-			// GenericBSTreeValue = { .t = IMAGNODE, .data.imagNode =  }	
-
-			get_color(&color, iterations);
-
-			*(row++) = color.red;
-			*(row++) = color.green;
-			*(row++) = color.blue;
+		for (int x = 0; x < width; x++) {
+			iters = status[y * width + x] >> 1;
+			get_color(&color, iters);
+			*(row + 3 * x) = color.red;
+			*(row + 3 * x + 1) = color.green;
+			*(row + 3 * x + 2) = color.blue;
 		}
 	}
 
-	mpf_t test;
-	mpf_init_set_d(test, 0.356584119496855345912);
-	GenericBSTreeValue pastValue = bstree_get(&past, test);
-	if (pastValue.t != NOTHING) {
-		printf("found match\n");
-	}
-	mpf_clear(test);
-
-	clear_bstree(&past);
+	free(status);
 	
-	/* Write the image data to "fp". */
-
 	png_init_io(png_ptr, fp);
 	png_set_rows(png_ptr, info_ptr, row_pointers);
 	png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
 
-	/* The routine has successfully written the file, so we set
-	"status" to a value which indicates success. */
-	
-	for (size_t y = 0; y < height; y++)
+	for (int y = 0; y < height; y++)
 		png_free(png_ptr, row_pointers[y]);
 	png_free(png_ptr, row_pointers);
 
-	int status = 0;
+	int exitStatus = 0;
 	png_failure:
 	png_create_info_struct_failed:
 	png_destroy_write_struct(&png_ptr, &info_ptr);
@@ -197,8 +181,7 @@ int write_png(const char *file_name, int width, int height,
 	fclose(fp);
 
 	fopen_failed:
-	status = -1;
+	exitStatus = -1;
 
-	mpf_clear(change);
-	return status;
+	return exitStatus;
 }

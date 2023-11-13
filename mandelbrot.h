@@ -4,9 +4,9 @@
 #include <stdio.h>
 #include "complex.h"
 
-int get_iterations(const mpf_t real, const mpf_t imag);
 int write_png(const char *file_name, int width, int height, 
-			  const mpf_t bottom_left_real, const mpf_t bottom_left_imag,
-			  const mpf_t top_right_real, const mpf_t top_right_imag);
+			  double bottom_left_real, double bottom_left_imag,
+			  double top_right_real, double top_right_imag,	
+			  int max_iters, int thread_count);
 
 #endif
