@@ -1,12 +1,44 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<link rel="stylesheet" href="style.css">
 		<title>test</title>
 	</head>
 	<body>
+		<label for="width">Width</label>
+		<input name="width" id="width" type="number">
+		<br>
+		<label for="height">Height</label>
+		<input name="height" id="height" type="number">
+		<br>
 		<label for="remin">Min real</label>
 		<input name="remin" id="remin" type="number">
-		
+		<br>
+		<label for="immin">Min imag</label>
+		<input name="immin" id="immin" type="number">
+		<br>
+		<label for="remax">Max real</label>
+		<input name="remax" id="remax" type="number">
+		<br>
+		<label for="immax">Max imag</label>
+		<input name="immax" id="immax" type="number">
+		<br>
+		<label for="iters">Iterations</label>
+		<input name="iters" id="iters" type="number">
+		<br>
+		<label for="threads"># of threads</label>
+		<input name="threads" id="threads" type="number">
+		<br>
+		<label for="simd">SIMD instruction set</label>
+		<select name="simd" id="simd">
+			<option value="none">None</option>
+			<option value="sse">SSE</option>
+			<option value="avx2">AVX</option>
+		</select> 
+		<br>
+		<p id="warn"></p>
+		<button id="generate">Generate</button>
+
 		<script src="libmandel.js"></script>
 		<script src="mandelbrot.js"></script>
 	</body>

@@ -27,3 +27,50 @@ function genMandelbrot(width, height, remin, immin, remax, immax, max_iters, thr
 
 	return result;
 }
+
+// https://stackoverflow.com/a/175787
+function isNumeric(str) {
+	return !isNaN(str) && !isNaN(parseFloat(str));
+}
+function isInteger(str) {
+	return Number.isInteger(parseFloat(str));
+}
+
+const WARN = document.getElementById("warn");
+
+const FIELD_ID = ["width", "height", "remin", "immin", "remax", "immax", "iters", "threads", "simd"];
+const FIELD_NAME = ["width", "height", "min real", "min imag", "max real", "max imag", "iterations", "threads", "simd"];
+
+document.getElementById("generate").onclick = () => {
+	let inputs = new Array(9);
+	for (let i = 0; i < 9; i++) {
+		inputs[i] = document.getElementById(FIELD_ID[i]).value;
+		if ((i >= 0 && i <= 1) || (i >= 6 && i <= 7)) {
+			if (isInteger(inputs[i]) && parseInt(inputs[i]) > 0)
+				inputs[i] = parseInt(inputs[i]);
+			else {
+				WARN.textContent = `Field "${FIELD_NAME[i]}" must be a positive integer`;
+				return;
+			}
+		}
+		if (i >= 2 && i <= 5) {
+			if (isNumeric(inputs[i]))
+				inputs[i] = parseInt(inputs[i]);
+			else {
+				WARN.textContent = `Field "${FIELD_NAME[i]}" must be numeric`;
+				return;
+			}
+		}
+	}
+
+	if (inputs[2] >= inputs[4]) {
+		WARN.textContent = `Min real must be less than max real`;
+		return;
+	}
+	if (inputs[3] >= inputs[5]) {
+		WARN.textContent = `Min imag must be less than max imag`;
+		return;
+	}
+
+	console.log(inputs);
+};
