@@ -1,6 +1,6 @@
-function getRed(num) { return num >> 16 & 255; }
-function getGreen(num) { return num >> 8 & 255; }
-function getBlue(num) { return num & 255; }
+function red(num) { return num >> 16 & 255; }
+function green(num) { return num >> 8 & 255; }
+function blue(num) { return num & 255; }
 
 function genMandelbrot(width, height, remin, immin, remax, immax, max_iters, thread_count, instructions) {
 	calculate = Module.cwrap(
@@ -36,41 +36,71 @@ function isInteger(str) {
 	return Number.isInteger(parseFloat(str));
 }
 
-const WARN = document.getElementById("warn");
+const warn = document.getElementById("warn");
+const canvas = document.getElementById("canvas");
 
-const FIELD_ID = ["width", "height", "remin", "immin", "remax", "immax", "iters", "threads", "simd"];
-const FIELD_NAME = ["width", "height", "min real", "min imag", "max real", "max imag", "iterations", "threads", "simd"];
+const FIELD_ID = ["res", "remin", "immin", "remax", "immax", "iters", "threads", "simd"];
+const FIELD_NAME = ["resolution", "min real", "min imag", "max real", "max imag", "iterations", "threads", "simd"];
+const SIMD = ["none", "sse", "avx"];
 
 document.getElementById("generate").onclick = () => {
-	let inputs = new Array(9);
-	for (let i = 0; i < 9; i++) {
-		inputs[i] = document.getElementById(FIELD_ID[i]).value;
-		if ((i >= 0 && i <= 1) || (i >= 6 && i <= 7)) {
-			if (isInteger(inputs[i]) && parseInt(inputs[i]) > 0)
-				inputs[i] = parseInt(inputs[i]);
+	let input = new Array(8);
+	for (let i = 0; i < 8; i++) {
+		input[i] = document.getElementById(FIELD_ID[i]).value;
+		if (i == 0 || (i >= 5 && i <= 6)) {
+			if (isInteger(input[i]) && parseInt(input[i]) > 0)
+				input[i] = parseInt(input[i]);
 			else {
-				WARN.textContent = `Field "${FIELD_NAME[i]}" must be a positive integer`;
+				warn.textContent = `Field "${FIELD_NAME[i]}" must be a positive integer`;
 				return;
 			}
 		}
-		if (i >= 2 && i <= 5) {
-			if (isNumeric(inputs[i]))
-				inputs[i] = parseInt(inputs[i]);
+		if (i >= 1 && i <= 4) {
+			if (isNumeric(input[i]))
+				input[i] = parseFloat(input[i]);
 			else {
-				WARN.textContent = `Field "${FIELD_NAME[i]}" must be numeric`;
+				warn.textContent = `Field "${FIELD_NAME[i]}" must be numeric`;
 				return;
 			}
 		}
 	}
 
-	if (inputs[2] >= inputs[4]) {
-		WARN.textContent = `Min real must be less than max real`;
+	if (input[1] >= input[3]) {
+		warn.textContent = `Min real must be less than max real`;
 		return;
 	}
-	if (inputs[3] >= inputs[5]) {
-		WARN.textContent = `Min imag must be less than max imag`;
+	if (input[2] >= input[4]) {
+		warn.textContent = `Min imag must be less than max imag`;
 		return;
 	}
 
-	console.log(inputs);
+	warn.textContent = "";
+
+	let width, height;
+
+	let wthRatio = (input[3] - input[1]) / (input[4] - input[2]);
+	// let wthRatio = (remax - remin) / (immax - immin);
+	if (wthRatio >= 1) {
+		width = Math.floor(input[0]);
+		height = Math.floor(input[0] / wthRatio);
+	}
+	else {
+		height = Math.floor(input[0]);
+		width = Math.floor(input[0] * wthRatio);
+	}
+
+	let ctx = canvas.getContext("2d");
+
+	ctx.canvas.width  = width;
+	ctx.canvas.height = height;
+
+	let simd = SIMD.indexOf(input[7]);
+	if (simd == -1)
+		simd = 0;
+
+	let colors = genMandelbrot(width, height, input[1], input[2], input[3], input[4], input[5], input[6], simd);
+	for (let i = 0; i < width * height; i++) {
+		ctx.fillStyle = `rgba(${red(colors[i])}, ${green(colors[i])}, ${blue(colors[i])}, 255)`;
+		ctx.fillRect(i % width, Math.floor(i / width), 1, 1);
+	}
 };

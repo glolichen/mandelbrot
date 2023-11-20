@@ -5,11 +5,8 @@
 		<title>test</title>
 	</head>
 	<body>
-		<label for="width">Width</label>
-		<input name="width" id="width" type="number">
-		<br>
-		<label for="height">Height</label>
-		<input name="height" id="height" type="number">
+		<label for="res">Resolution</label>
+		<input name="res" id="res" type="number">
 		<br>
 		<label for="remin">Min real</label>
 		<input name="remin" id="remin" type="number">
@@ -38,6 +35,8 @@
 		<br>
 		<p id="warn"></p>
 		<button id="generate">Generate</button>
+		<br>
+		<canvas id="canvas"></canvas>
 
 		<script src="libmandel.js"></script>
 		<script src="mandelbrot.js"></script>

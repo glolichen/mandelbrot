@@ -33,9 +33,11 @@ void do_calculation_wasm(int *status, int width, int height,
 		int bottomHeight = (i + 1) * height / thread_count;
 		switch (instructions) {
 			case None:
+				printf("none\n");
 				do_calculation_naive(status, remin, immax, change, width, topHeight, bottomHeight, max_iters);
 				break;
 			case SSE:
+				printf("sse\n");
 				do_calculation_sse(status, remin, immax, change, width, topHeight, bottomHeight, max_iters);
 				break;
 			// case AVX2:

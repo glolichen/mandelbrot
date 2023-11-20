@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 	assert(remin < remax);
 	assert(immin < immax);
 
-	double wthRatio = (atof(argv[4]) - atof(argv[2])) / (atof(argv[5]) - atof(argv[3]));
+	double wthRatio = (remax - remin) / (immax - immin);
 	int width, height;
 
 	int threads = -1, iters = 1000, instructions = -1;
