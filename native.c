@@ -17,10 +17,9 @@ void do_calculation_native(int *status, int width, int height,
 			  double remin, double immin, double remax, double immax,	
 			  int max_iters, int thread_count, int instructions) {
 
-	double realChange, imagChange, change;
+	double realChange, imagChange;
 	realChange = (remax - remin) / width;
 	imagChange = (immax - immin) / height;
-	change = (realChange + imagChange) / 2;
 
 	#pragma omp parallel for
 	for (int i = 0; i < thread_count; i++) {
@@ -28,13 +27,13 @@ void do_calculation_native(int *status, int width, int height,
 		int bottomHeight = (i + 1) * height / thread_count;
 		switch (instructions) {
 			case None:
-				do_calculation_naive(status, remin, immax, change, width, topHeight, bottomHeight, max_iters);
+				do_calculation_naive(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
 				break;
 			case SSE:
-				do_calculation_sse(status, remin, immax, change, width, topHeight, bottomHeight, max_iters);
+				do_calculation_sse(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
 				break;
 			case AVX2:
-				do_calculation_avx2(status, remin, immax, change, width, topHeight, bottomHeight, max_iters);
+				do_calculation_avx2(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
 				break;
 		}
 	}
@@ -94,15 +93,18 @@ int write_png(const char *file_name, int width, int height,
 	png_free(png_ptr, row_pointers);
 
 	int exitStatus = 0;
-	png_failure:
-	png_create_info_struct_failed:
-	png_destroy_write_struct(&png_ptr, &info_ptr);
+	
+	if (0) {
+		png_failure:
+		png_create_info_struct_failed:
+		png_destroy_write_struct(&png_ptr, &info_ptr);
 
-	png_create_write_struct_failed:
-	fclose(fp);
+		png_create_write_struct_failed:
+		fclose(fp);
 
-	fopen_failed:
-	exitStatus = -1;
+		fopen_failed:
+		exitStatus = -1;
+	}
 
 	return exitStatus;
 }
