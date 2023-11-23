@@ -146,5 +146,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	int res = write_png(fileName, width, height, remin, immin, remax, immax, iters, threads, instructions);
+	if (res != 0)
+		fprintf(stderr, "png writer failed with exit status %d", res);
+
 	return res;
 }
