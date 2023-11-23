@@ -29,7 +29,9 @@ int get_iterations_naive(double real, double imag, int max_iters) {
 
 	return get_color(x2 + y2, iters, max_iters);
 }
-void do_calculation_naive(int *status, double remin, double immax, double change, int width, int top_height, int bottom_height, int max_iters) {
+void do_calculation_naive(int *status, double remin, double immax, double realChange, double imagChange, int width, int top_height, int bottom_height, int max_iters) {
+	printf("%d %d %d\n", width, top_height, bottom_height);
+	
 	int iters;
 	double real, imag;
 
@@ -38,9 +40,9 @@ void do_calculation_naive(int *status, double remin, double immax, double change
 
 	for (int i = 0; i < width; i++) {
 		linked_list_add(&linkedList, top_height * (width - 1) + i);
-		status[i] = 1;
-		linked_list_add(&linkedList, bottom_height * (width - 1) + i);
-		status[bottom_height * (width - 1) + i] = 1;
+		status[top_height * (width - 1) + i] = 1;
+		linked_list_add(&linkedList, (bottom_height - 1) * width + i);
+		status[(bottom_height - 1) * width + i] = 1;
 	}
 	for (int i = top_height + 1; i < bottom_height - 1; i++) {
 		linked_list_add(&linkedList, i * width);
@@ -54,9 +56,9 @@ void do_calculation_naive(int *status, double remin, double immax, double change
 		cur = linked_list_pop_front(&linkedList);
 		cx = cur % width, cy = cur / width;
 
-		real = remin + change * cx;
+		real = remin + realChange * cx;
 		// imag = immax - change * cy;
-		imag = fabs(immax - change * cy);
+		imag = fabs(immax - imagChange * cy);
 		iters = get_iterations_naive(real, imag, max_iters);
 		status[cur] = iters;
 		if (iters == 0)

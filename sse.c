@@ -54,7 +54,7 @@ __m128i get_iterations_sse(const __m128d *real, const __m128d *imag, int num_num
 
 	return result;
 }
-void do_calculation_sse(int *status, double remin, double immax, double change, int width, int top_height, int bottom_height, int max_iters) {
+void do_calculation_sse(int *status, double remin, double immax, double realChange, double imagChange, int width, int top_height, int bottom_height, int max_iters) {
 	oneSSE = _mm_set1_pd(1);
 	twoSSE = _mm_set1_pd(2);
 	fourSSE = _mm_set1_pd(4);
@@ -62,7 +62,8 @@ void do_calculation_sse(int *status, double remin, double immax, double change, 
 	
 	__m128d remins = _mm_set1_pd(remin);
 	__m128d immaxes = _mm_set1_pd(immax);
-	__m128d changes = _mm_set1_pd(change);
+	__m128d realChanges = _mm_set1_pd(realChange);
+	__m128d imagChanges = _mm_set1_pd(imagChange);
 	
 	__m128i iterses;
 
@@ -71,9 +72,9 @@ void do_calculation_sse(int *status, double remin, double immax, double change, 
 
 	for (int i = 0; i < width; i++) {
 		linked_list_add(&linkedList, top_height * (width - 1) + i);
-		status[i] = 1;
-		linked_list_add(&linkedList, bottom_height * (width - 1) + i);
-		status[bottom_height * (width - 1) + i] = 1;
+		status[top_height * (width - 1) + i] = 1;
+		linked_list_add(&linkedList, (bottom_height - 1) * width + i);
+		status[(bottom_height - 1) * width + i] = 1;
 	}
 	for (int i = top_height + 1; i < bottom_height - 1; i++) {
 		linked_list_add(&linkedList, i * width);
@@ -99,8 +100,8 @@ void do_calculation_sse(int *status, double remin, double immax, double change, 
 		for (int i = numPoppable; i < 2; i++)
 			cur[i] = 0;
 
-		reals = _mm_add_pd(remins, _mm_mul_pd(changes, _mm_setr_pd(cx[0], cx[1])));
-		imags = _mm_sub_pd(immaxes, _mm_mul_pd(changes, _mm_setr_pd(cy[0], cy[1])));
+		reals = _mm_add_pd(remins, _mm_mul_pd(realChanges, _mm_setr_pd(cx[0], cx[1])));
+		imags = _mm_sub_pd(immaxes, _mm_mul_pd(imagChanges, _mm_setr_pd(cy[0], cy[1])));
 
 		iterses = get_iterations_sse(&reals, &imags, numPoppable, max_iters);
 		for (int i = 0; i < numPoppable; i++) {
