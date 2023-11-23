@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "base.h"
 
@@ -10,8 +11,20 @@ int DIRECTION[4][2] = {
 	{ -1, 0 },
 };
 
+// a % b is not a modulo operator. It is a remainder operator
+// so -2 % 5 is -2, not 3
+// this is bad for the hsv calculation formula, where negatives must wrap so that it is between 0 and 360
+int mod(int a, int b) {
+	int r = a % b;
+    return r < 0 ? r + b : r;
+}
+
 // https://stackoverflow.com/a/6930407
 int hsv2rgb(double h, double s, double v) {
+	assert(h >= 0 && h <= 360);
+	assert(s >= 0.0 && s <= 1.0);
+	assert(v >= 0.0 && v <= 1.0);
+
 	double hh, p, q, t, ff;
 	long i;
 	int out = 0;
@@ -63,7 +76,7 @@ int get_color(double norm, int iters, int max_iters) {
 	else {
 		double nsmooth = iters + 1 - log(log(norm) / 2) / log(2);
 		// ret = hsv2rgb(((int) (240 - nsmooth - pow(1.02, nsmooth))) % 360, 0.6, 0.8);
-		ret = hsv2rgb(((int) (240 - nsmooth)) % 360, 0.6, 0.8);
+		ret = hsv2rgb(mod((int) 240 - nsmooth, 360), 0.6, 0.8);
 
 		// double hue = ((double) iters) + 1.0 - log(log(sqrt(norm))) / log(2.0);  // 2 is escape radius
 		// printf("%f\n", hue);
