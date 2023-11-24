@@ -103,46 +103,46 @@ var isWaiting = false, isProcessing = false;
 
 // https://stackoverflow.com/questions/22427395/what-is-the-google-map-zoom-algorithm
 addEventListener("wheel", (event) => {
+	event.preventDefault();
+
 	if (isProcessing)
 		return;
+
+	let factor = (event.deltaY > 0 ? 1 / 0.8 : 0.8);
 
 	let width = document.documentElement.clientWidth;
 	let height = document.documentElement.clientHeight;
 
-	if (event.deltaY > 0) {
+	// zoom in
+	let clickX = event.clientX;
+	let clickY = event.clientY;
 
-	}
-	if (event.deltaY < 0) {
-		// zoom in
-		let clickX = event.clientX;
-		let clickY = event.clientY;
+	let imdistance = redistance * (height / width);
+
+	let remin = recenter - redistance;
+	let immax = imcenter + imdistance;
+
+	let xOnImage = remin + (2 * redistance / width) * clickX;
+	let yOnImage = immax - (2 * imdistance / height) * clickY;
+
+	let newMapWidth = 2 * factor * redistance;//lets say that zoomFactor = <1.0, maxZoomFactor>
+	let newMapHeight = 2 * factor * imdistance;
 	
-		let imdistance = redistance * (height / width);
+	let left = xOnImage - (clickX) * (newMapWidth / width);
+	let top = yOnImage - (height - clickY) * (newMapHeight / height);
+	let right = left + newMapWidth;
+	let bottom = top + newMapHeight;
+
+	recenter = (right + left) / 2;
+	redistance = (right - left) / 2;
+	imcenter = (bottom + top) / 2;
+
+	canvas.style.transformOrigin = `${clickX}px ${clickY}px`;
+	curCSSScale /= factor;
+	canvas.style.transform = `scale(${curCSSScale})`;
+
+	console.log("zoom");
 	
-		let remin = recenter - redistance;
-		let immax = imcenter + imdistance;
-
-		let xOnImage = remin + (2 * redistance / width) * clickX;
-		let yOnImage = immax - (2 * imdistance / height) * clickY;
-
-		let newMapWidth = 2 * 0.8 * redistance;//lets say that zoomFactor = <1.0, maxZoomFactor>
-		let newMapHeight = 2 * 0.8 * imdistance;
-		
-		let left = xOnImage - (clickX) * (newMapWidth / width);
-		let top = yOnImage - (height - clickY) * (newMapHeight / height);
-		let right = left + newMapWidth;
-		let bottom = top + newMapHeight;
-
-		recenter = (right + left) / 2;
-		redistance = (right - left) / 2;
-		imcenter = (bottom + top) / 2;
-
-		canvas.style.transformOrigin = `${clickX}px ${clickY}px`;
-		curCSSScale *= 1.25;
-		canvas.style.transform = `scale(${curCSSScale})`;
-
-		console.log("zoom");
-	}
 	if (!isWaiting) {
 		isWaiting = true;
 		setTimeout(() => {
