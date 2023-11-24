@@ -5,7 +5,7 @@
 #include "base.h"
 #include "linkedlist.h"
 
-__m256d oneAVX2, twoAVX2, fourAVX2, quarterAVX2;
+__m256d oneAVX2, twoAVX2, fourAVX2, quarterAVX2, sixteenthAVX2;
 
 __m256i get_iterations_avx2(const __m256d *real, const __m256d *imag, int num_nums, int max_iters) {
 	__m256i result = _mm256_set1_epi16(0);
@@ -19,8 +19,10 @@ __m256i get_iterations_avx2(const __m256d *real, const __m256d *imag, int num_nu
 	__m256d q = _mm256_add_pd(_mm256_mul_pd(_mm256_sub_pd(x, quarterAVX2), _mm256_sub_pd(x, quarterAVX2)), _mm256_mul_pd(y, y));
 	__m256d r = _mm256_mul_pd(q, _mm256_add_pd(q, _mm256_sub_pd(x, quarterAVX2)));
 	__m256d s = _mm256_mul_pd(quarterAVX2, _mm256_mul_pd(y, y));
+	int cond1 = _mm256_cmp_pd_mask(p, sixteenthAVX2, _CMP_LE_OS);
+	int cond2 = _mm256_cmp_pd_mask(r, s, _CMP_LE_OS);
 	for (int i = 0; i < num_nums; i++) {
-		if (p[i] <= 0.0625 || r[i] <= s[i]) {
+		if (((cond1 >> i) & 1) || ((cond2 >> i) & 1)) {
 			result[i] = 0;
 			skipCalculation |= 1 << i;
 		}
@@ -59,6 +61,7 @@ void do_calculation_avx2(int *status, double remin, double immax, double realCha
 	twoAVX2 = _mm256_set1_pd(2);
 	fourAVX2 = _mm256_set1_pd(4);
 	quarterAVX2 = _mm256_set1_pd(0.25);
+	sixteenthAVX2 = _mm256_set1_pd(0.0625);
 	
 	__m256d remins = _mm256_set1_pd(remin);
 	__m256d immaxes = _mm256_set1_pd(immax);

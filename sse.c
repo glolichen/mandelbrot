@@ -5,7 +5,7 @@
 #include "base.h"
 #include "linkedlist.h"
 
-__m128d oneSSE, twoSSE, fourSSE, quarterSSE;
+__m128d oneSSE, twoSSE, fourSSE, quarterSSE, sixteenthSSE;
 
 __m128i get_iterations_sse(const __m128d *real, const __m128d *imag, int num_nums, int max_iters) {
 	__m128i result = _mm_set1_epi16(0);
@@ -19,8 +19,10 @@ __m128i get_iterations_sse(const __m128d *real, const __m128d *imag, int num_num
 	__m128d q = _mm_add_pd(_mm_mul_pd(_mm_sub_pd(x, quarterSSE), _mm_sub_pd(x, quarterSSE)), _mm_mul_pd(y, y));
 	__m128d r = _mm_mul_pd(q, _mm_add_pd(q, _mm_sub_pd(x, quarterSSE)));
 	__m128d s = _mm_mul_pd(quarterSSE, _mm_mul_pd(y, y));
+	int cond1 = _mm_movemask_pd(_mm_cmple_pd(p, sixteenthSSE));
+	int cond2 = _mm_movemask_pd(_mm_cmple_pd(r, s));
 	for (int i = 0; i < num_nums; i++) {
-		if (p[i] <= 0.0625 || r[i] <= s[i]) {
+		if (((cond1 >> i) & 1) || ((cond2 >> i) & 1)) {
 			result[i] = 0;
 			skipCalculation |= 1 << i;
 		}
@@ -59,6 +61,7 @@ void do_calculation_sse(int *status, double remin, double immax, double realChan
 	twoSSE = _mm_set1_pd(2);
 	fourSSE = _mm_set1_pd(4);
 	quarterSSE = _mm_set1_pd(0.25);
+	sixteenthSSE = _mm_set1_pd(0.0625);
 	
 	__m128d remins = _mm_set1_pd(remin);
 	__m128d immaxes = _mm_set1_pd(immax);
