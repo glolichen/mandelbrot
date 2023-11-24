@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <omp.h>
 
 #include "native.h"
 #include "linkedlist.h"
@@ -52,13 +51,7 @@ Options:\n\
 
 // https://stackoverflow.com/a/76866890
 int get_threads() {
-	int num_threads = 1;
-	#pragma omp parallel
-	{
-		#pragma omp single
-		num_threads = omp_get_num_threads();
-	}
-	return num_threads;
+	return 8;
 }
 
 int main(int argc, char *argv[]) {

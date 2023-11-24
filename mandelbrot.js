@@ -1,26 +1,3 @@
-function red(num) { return num >> 16 & 255; }
-function green(num) { return num >> 8 & 255; }
-function blue(num) { return num & 255; }
-
-const calculate_function = Module.cwrap(
-	'do_calculation_wasm', 'void', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']
-);
-
-function genMandelbrot(width, height, remin, immin, remax, immax, max_iters, thread_count, instructions) {
-	let data = new Int32Array(new Array(width * height));
-	let nDataBytes = data.length * data.BYTES_PER_ELEMENT;
-	let dataPtr = Module._malloc(nDataBytes);
-	let dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, nDataBytes);
-	dataHeap.set(new Uint8Array(data.buffer));
-
-	calculate_function(dataHeap.byteOffset, width, height, remin, immin, remax, immax, max_iters, thread_count, instructions);
-	dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, nDataBytes);
-	let result = new Int32Array(dataHeap.buffer, dataHeap.byteOffset, data.length);
-
-	Module._free(dataHeap.byteOffset);
-	return result;
-}
-
 function isInteger(str) {
 	return Number.isInteger(parseFloat(str));
 }
@@ -32,11 +9,26 @@ var recenter = 0;
 var redistance = 5;
 var imcenter = 0;
 
-function draw() {
-	let start = new Date();
+const worker = new Worker("./worker.js");
 
-	let width = window.screen.width;
-	let height = window.screen.height;
+var curCSSScale = 1;
+
+function draw() {
+	// https://stackoverflow.com/a/17906462
+	oldCanvas.className = "";
+	oldCanvas.width = canvas.width;
+	oldCanvas.height = canvas.height;
+	oldCanvas.style.transformOrigin = canvas.style.transformOrigin;
+	oldCanvas.style.transform = canvas.style.transform;
+	var destinationCtx = oldCanvas.getContext("2d");
+	destinationCtx.drawImage(canvas, 0, 0);
+	canvas.className = "hidden";
+
+	// //copy the data
+	// destinationCtx.drawImage(sourceCanvas, 0, 0);
+
+	let width = document.documentElement.clientWidth;
+	let height = document.documentElement.clientHeight;
 
 	let remin = recenter - redistance;
 	let remax = recenter + redistance;
@@ -58,34 +50,54 @@ function draw() {
 	}
 	input[2] = document.getElementById(FIELDS[2]).value;
 
-	let ctx = canvas.getContext("2d", { alpha: false });
+	let ctx = canvas.getContext("2d");
+	// let ctx = canvas.getContext("2d", { alpha: false });
+
+	let imgdata = ctx.getImageData(0, 0, width, height);
+	let imgdatalen = imgdata.data.length;
 
 	ctx.canvas.width  = width;
 	ctx.canvas.height = height;
 
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	// ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 	let simd = SIMD.indexOf(input[2]);
 	if (simd == -1)
 		simd = 0;
 
-	let colors = genMandelbrot(width, height, remin, immin, remax, immax, input[0], input[1], simd);
+	worker.postMessage({
+		width: width,
+		height: height,
+		remin: remin,
+		immin: immin,
+		remax: remax,
+		immax: immax,
+		max_iters: input[0],
+		threads: input[1],
+		simd: simd,
+	});
 
-	let startDraw = new Date();
-
-	for (let i = 0; i < width * height; i++) {
-		ctx.fillStyle = `rgb(${red(colors[i])}, ${green(colors[i])}, ${blue(colors[i])})`;
-		ctx.fillRect(i % width, Math.floor(i / width), 1, 1);
+	worker.onmessage = e => {
+		for (var i = 0; i < imgdatalen / 4; i++) {
+			imgdata.data[4 * i] = e.data[i].red;
+			imgdata.data[4 * i + 1] = e.data[i].green;
+			imgdata.data[4 * i + 2] = e.data[i].blue;
+			imgdata.data[4 * i + 3] = 255;
+		}
+		ctx.putImageData(imgdata, 0, 0);
+		curCSSScale = 1;
+		canvas.style.transform = "scale(1)";
+		canvas.className = "";
+		oldCanvas.className = "hidden";
 	}
-
-	let finish = new Date();
-
-	console.log(`drawing time: ${finish - startDraw}ms`);
-	console.log(`total time: ${finish - start}ms`);
 }
 
+
 document.getElementById("generate").onclick = draw;
-Module['onRuntimeInitialized'] = draw;
+worker.onmessage = e => {
+	if (e.data == "initialized")
+		draw();
+}
 
 var isWaiting = false, isProcessing = false;
 
@@ -94,15 +106,14 @@ addEventListener("wheel", (event) => {
 	if (isProcessing)
 		return;
 
-	let width = window.screen.width;
-	let height = window.screen.height;
+	let width = document.documentElement.clientWidth;
+	let height = document.documentElement.clientHeight;
 
 	if (event.deltaY > 0) {
 
 	}
 	if (event.deltaY < 0) {
 		// zoom in
-		// console.log(event.deltaY, event.clientX, event.clientY);
 		let clickX = event.clientX;
 		let clickY = event.clientY;
 	
@@ -114,10 +125,10 @@ addEventListener("wheel", (event) => {
 		let xOnImage = remin + (2 * redistance / width) * clickX;
 		let yOnImage = immax - (2 * imdistance / height) * clickY;
 
-		let newMapWidth = 2 * 0.75 * redistance;//lets say that zoomFactor = <1.0, maxZoomFactor>
-		let newMapHeight = 2 * 0.75 * imdistance;
+		let newMapWidth = 2 * 0.8 * redistance;//lets say that zoomFactor = <1.0, maxZoomFactor>
+		let newMapHeight = 2 * 0.8 * imdistance;
 		
-		let left = xOnImage - (clickX - 0) * (newMapWidth / width);
+		let left = xOnImage - (clickX) * (newMapWidth / width);
 		let top = yOnImage - (height - clickY) * (newMapHeight / height);
 		let right = left + newMapWidth;
 		let bottom = top + newMapHeight;
@@ -125,6 +136,10 @@ addEventListener("wheel", (event) => {
 		recenter = (right + left) / 2;
 		redistance = (right - left) / 2;
 		imcenter = (bottom + top) / 2;
+
+		canvas.style.transformOrigin = `${clickX}px ${clickY}px`;
+		curCSSScale *= 1.25;
+		canvas.style.transform = `scale(${curCSSScale})`;
 
 		console.log("zoom");
 	}

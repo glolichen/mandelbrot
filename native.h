@@ -2,6 +2,7 @@
 #define NATIVE_H
 
 #include <stdio.h>
+#include "base.h"
 
 enum { None, SSE, AVX2, GMP };
 

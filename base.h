@@ -12,6 +12,12 @@
 
 #define SET_RGB(num, r, g, b) (SET_RED(num, r), SET_GREEN(num, g), SET_BLUE(num, b))
 
+typedef struct {
+	int *status;
+	double remin, immax, realChange, imagChange;
+	int width, top_height, bottom_height, max_iters;
+} Arguments;
+
 extern int DIRECTION[4][2];
 
 double min(double a, double b);

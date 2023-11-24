@@ -22,22 +22,25 @@ void do_calculation_native(int *status, int width, int height,
 	realChange = (remax - remin) / width;
 	imagChange = (immax - immin) / height;
 
-	#pragma omp parallel for
 	for (int i = 0; i < thread_count; i++) {
 		int topHeight = i * height / thread_count;
 		int bottomHeight = (i + 1) * height / thread_count;
+		Arguments args = {
+			.status = status, .remin = remin, .immax = immax, .realChange = realChange, .imagChange = imagChange,
+			.width = width, .top_height = topHeight, .bottom_height = bottomHeight, .max_iters = max_iters
+		};
 		switch (instructions) {
 			case None:
-				do_calculation_naive(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
+				do_calculation_naive(&args);
 				break;
 			case SSE:
-				do_calculation_sse(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
+				do_calculation_sse(&args);
 				break;
 			case AVX2:
-				do_calculation_avx2(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
+				do_calculation_avx2(&args);
 				break;
 			case GMP:
-				do_calculation_gmp(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
+				do_calculation_gmp(&args);
 				break;
 		}
 	}

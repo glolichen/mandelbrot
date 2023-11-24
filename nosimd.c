@@ -29,47 +29,49 @@ int get_iterations_naive(double real, double imag, int max_iters) {
 
 	return get_color(x2 + y2, iters, max_iters);
 }
-void do_calculation_naive(int *status, double remin, double immax, double realChange, double imagChange, int width, int top_height, int bottom_height, int max_iters) {	
+void do_calculation_naive(void *arguments) {	
+	Arguments *args = (Arguments *) arguments;
+
 	int iters;
 	double real, imag;
 
 	LinkedList linkedList; // either a stack or deque
 	make_linked_list(&linkedList);
 
-	for (int i = 0; i < width; i++) {
-		linked_list_add(&linkedList, top_height * (width - 1) + i);
-		status[top_height * (width - 1) + i] = 1;
-		linked_list_add(&linkedList, (bottom_height - 1) * width + i);
-		status[(bottom_height - 1) * width + i] = 1;
+	for (int i = 0; i < args->width; i++) {
+		linked_list_add(&linkedList, args->top_height * (args->width - 1) + i);
+		args->status[args->top_height * (args->width - 1) + i] = 1;
+		linked_list_add(&linkedList, (args->bottom_height - 1) * args->width + i);
+		args->status[(args->bottom_height - 1) * args->width + i] = 1;
 	}
-	for (int i = top_height + 1; i < bottom_height - 1; i++) {
-		linked_list_add(&linkedList, i * width);
-		status[i * width] = 1;
-		linked_list_add(&linkedList, i * width + width - 1);
-		status[i * width + width - 1] = 1;
+	for (int i = args->top_height + 1; i < args->bottom_height - 1; i++) {
+		linked_list_add(&linkedList, i * args->width);
+		args->status[i * args->width] = 1;
+		linked_list_add(&linkedList, i * args->width + args->width - 1);
+		args->status[i * args->width + args->width - 1] = 1;
 	}
 
 	int cur, cx, cy, nx, ny, index;
 	while (linkedList.size != 0) {
 		cur = linked_list_pop_front(&linkedList);
-		cx = cur % width, cy = cur / width;
+		cx = cur % args->width, cy = cur / args->width;
 
-		real = remin + realChange * cx;
+		real = args->remin + args->realChange * cx;
 		// imag = immax - change * cy;
-		imag = fabs(immax - imagChange * cy);
-		iters = get_iterations_naive(real, imag, max_iters);
-		status[cur] = iters;
+		imag = fabs(args->immax - args->imagChange * cy);
+		iters = get_iterations_naive(real, imag, args->max_iters);
+		args->status[cur] = iters;
 		if (iters == 0)
 			continue;
 
 		for (int i = 0; i < 4; i++) {
 			nx = cx + DIRECTION[i][0];
 			ny = cy + DIRECTION[i][1];
-			if (nx < 0 || ny < top_height || nx >= width || ny >= bottom_height)	
+			if (nx < 0 || ny < args->top_height || nx >= args->width || ny >= args->bottom_height)	
 				continue;
-			index = ny * width + nx;
-			if (status[index] == 0) {
-				status[index] = 16777216;
+			index = ny * args->width + nx;
+			if (args->status[index] == 0) {
+				args->status[index] = 16777216;
 				linked_list_add(&linkedList, index);
 			}
 		}

@@ -56,34 +56,36 @@ __m128i get_iterations_sse(const __m128d *real, const __m128d *imag, int num_num
 
 	return result;
 }
-void do_calculation_sse(int *status, double remin, double immax, double realChange, double imagChange, int width, int top_height, int bottom_height, int max_iters) {
+void do_calculation_sse(void *arguments) {
+	Arguments *args = (Arguments *) arguments;
+
 	oneSSE = _mm_set1_pd(1);
 	twoSSE = _mm_set1_pd(2);
 	fourSSE = _mm_set1_pd(4);
 	quarterSSE = _mm_set1_pd(0.25);
 	sixteenthSSE = _mm_set1_pd(0.0625);
 	
-	__m128d remins = _mm_set1_pd(remin);
-	__m128d immaxes = _mm_set1_pd(immax);
-	__m128d realChanges = _mm_set1_pd(realChange);
-	__m128d imagChanges = _mm_set1_pd(imagChange);
+	__m128d remins = _mm_set1_pd(args->remin);
+	__m128d immaxes = _mm_set1_pd(args->immax);
+	__m128d realChanges = _mm_set1_pd(args->realChange);
+	__m128d imagChanges = _mm_set1_pd(args->imagChange);
 	
 	__m128i iterses;
 
 	LinkedList linkedList; // either a stack or deque
 	make_linked_list(&linkedList);
 
-	for (int i = 0; i < width; i++) {
-		linked_list_add(&linkedList, top_height * (width - 1) + i);
-		status[top_height * (width - 1) + i] = 1;
-		linked_list_add(&linkedList, (bottom_height - 1) * width + i);
-		status[(bottom_height - 1) * width + i] = 1;
+	for (int i = 0; i < args->width; i++) {
+		linked_list_add(&linkedList, args->top_height * (args->width - 1) + i);
+		args->status[args->top_height * (args->width - 1) + i] = 1;
+		linked_list_add(&linkedList, (args->bottom_height - 1) * args->width + i);
+		args->status[(args->bottom_height - 1) * args->width + i] = 1;
 	}
-	for (int i = top_height + 1; i < bottom_height - 1; i++) {
-		linked_list_add(&linkedList, i * width);
-		status[i * width] = 1;
-		linked_list_add(&linkedList, i * width + width - 1);
-		status[i * width + width - 1] = 1;
+	for (int i = args->top_height + 1; i < args->bottom_height - 1; i++) {
+		linked_list_add(&linkedList, i * args->width);
+		args->status[i * args->width] = 1;
+		linked_list_add(&linkedList, i * args->width + args->width - 1);
+		args->status[i * args->width + args->width - 1] = 1;
 	}
 
 	int *cur, *cx, *cy, nx, ny, numPoppable, index;
@@ -98,7 +100,7 @@ void do_calculation_sse(int *status, double remin, double immax, double realChan
 
 		for (int i = 0; i < numPoppable; i++) {
 			cur[i] = linked_list_pop_front(&linkedList);
-			cx[i] = cur[i] % width, cy[i] = cur[i] / width;
+			cx[i] = cur[i] % args->width, cy[i] = cur[i] / args->width;
 		}
 		for (int i = numPoppable; i < 2; i++)
 			cur[i] = 0;
@@ -106,20 +108,20 @@ void do_calculation_sse(int *status, double remin, double immax, double realChan
 		reals = _mm_add_pd(remins, _mm_mul_pd(realChanges, _mm_setr_pd(cx[0], cx[1])));
 		imags = _mm_sub_pd(immaxes, _mm_mul_pd(imagChanges, _mm_setr_pd(cy[0], cy[1])));
 
-		iterses = get_iterations_sse(&reals, &imags, numPoppable, max_iters);
+		iterses = get_iterations_sse(&reals, &imags, numPoppable, args->max_iters);
 		for (int i = 0; i < numPoppable; i++) {
-			status[cur[i]] = iterses[i];
+			args->status[cur[i]] = iterses[i];
 			if (iterses[i] == 0)
 				continue;
 
 			for (int j = 0; j < 4; j++) {
 				nx = cx[i] + DIRECTION[j][0];
 				ny = cy[i] + DIRECTION[j][1];
-				if (nx < 0 || ny < top_height || nx >= width || ny >= bottom_height)	
+				if (nx < 0 || ny < args->top_height || nx >= args->width || ny >= args->bottom_height)	
 					continue;
-				index = ny * width + nx;
-				if (status[index] == 0) {
-					status[index] = 16777216;
+				index = ny * args->width + nx;
+				if (args->status[index] == 0) {
+					args->status[index] = 16777216;
 					linked_list_add(&linkedList, index);
 				}
 			}

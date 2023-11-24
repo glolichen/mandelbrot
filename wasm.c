@@ -66,34 +66,36 @@ int *get_iterations_wasm_simd(const v128_t *real, const v128_t *imag, int num_nu
 	return result;
 }
 
-void do_calculation_wasm_simd(int *status, double remin, double immax, double realChange, double imagChange, int width, int top_height, int bottom_height, int max_iters) {
+void do_calculation_wasm_simd(void *arguments) {
+	Arguments *args = (Arguments *) arguments;
+
 	oneWasm = wasm_f64x2_splat(1);
 	twoWasm = wasm_f64x2_splat(2);
 	fourWasm = wasm_f64x2_splat(4);
 	quarterWasm = wasm_f64x2_splat(0.25);
 	sixteenthWasm = wasm_f64x2_splat(0.0625);
 	
-	v128_t remins = wasm_f64x2_splat(remin);
-	v128_t immaxes = wasm_f64x2_splat(immax);
-	v128_t realChanges = wasm_f64x2_splat(realChange);
-	v128_t imagChanges = wasm_f64x2_splat(imagChange);
+	v128_t remins = wasm_f64x2_splat(args->remin);
+	v128_t immaxes = wasm_f64x2_splat(args->immax);
+	v128_t realChanges = wasm_f64x2_splat(args->realChange);
+	v128_t imagChanges = wasm_f64x2_splat(args->imagChange);
 	
 	int *iterses;
 
 	LinkedList linkedList; // either a stack or deque
 	make_linked_list(&linkedList);
 
-	for (int i = 0; i < width; i++) {
-		linked_list_add(&linkedList, top_height * (width - 1) + i);
-		status[top_height * (width - 1) + i] = 1;
-		linked_list_add(&linkedList, (bottom_height - 1) * width + i);
-		status[(bottom_height - 1) * width + i] = 1;
+	for (int i = 0; i < args->width; i++) {
+		linked_list_add(&linkedList, args->top_height * (args->width - 1) + i);
+		args->status[args->top_height * (args->width - 1) + i] = 1;
+		linked_list_add(&linkedList, (args->bottom_height - 1) * args->width + i);
+		args->status[(args->bottom_height - 1) * args->width + i] = 1;
 	}
-	for (int i = top_height + 1; i < bottom_height - 1; i++) {
-		linked_list_add(&linkedList, i * width);
-		status[i * width] = 1;
-		linked_list_add(&linkedList, i * width + width - 1);
-		status[i * width + width - 1] = 1;
+	for (int i = args->top_height + 1; i < args->bottom_height - 1; i++) {
+		linked_list_add(&linkedList, i * args->width);
+		args->status[i * args->width] = 1;
+		linked_list_add(&linkedList, i * args->width + args->width - 1);
+		args->status[i * args->width + args->width - 1] = 1;
 	}
 
 	int *cur, *cx, *cy, nx, ny, numPoppable, index;
@@ -108,7 +110,7 @@ void do_calculation_wasm_simd(int *status, double remin, double immax, double re
 
 		for (int i = 0; i < numPoppable; i++) {
 			cur[i] = linked_list_pop_front(&linkedList);
-			cx[i] = cur[i] % width, cy[i] = cur[i] / width;
+			cx[i] = cur[i] % args->width, cy[i] = cur[i] / args->width;
 		}
 		for (int i = numPoppable; i < 2; i++)
 			cur[i] = 0;
@@ -116,20 +118,20 @@ void do_calculation_wasm_simd(int *status, double remin, double immax, double re
 		reals = wasm_f64x2_add(remins, wasm_f64x2_mul(realChanges, wasm_f64x2_make(cx[0], cx[1])));
 		imags = wasm_f64x2_sub(immaxes, wasm_f64x2_mul(imagChanges, wasm_f64x2_make(cy[0], cy[1])));
 
-		iterses = get_iterations_wasm_simd(&reals, &imags, numPoppable, max_iters);
+		iterses = get_iterations_wasm_simd(&reals, &imags, numPoppable, args->max_iters);
 		for (int i = 0; i < numPoppable; i++) {
-			status[cur[i]] = iterses[i];
+			args->status[cur[i]] = iterses[i];
 			if (iterses[i] == 0)
 				continue;
 
 			for (int j = 0; j < 4; j++) {
 				nx = cx[i] + DIRECTION[j][0];
 				ny = cy[i] + DIRECTION[j][1];
-				if (nx < 0 || ny < top_height || nx >= width || ny >= bottom_height)	
+				if (nx < 0 || ny < args->top_height || nx >= args->width || ny >= args->bottom_height)	
 					continue;
-				index = ny * width + nx;
-				if (status[index] == 0) {
-					status[index] = 16777216;
+				index = ny * args->width + nx;
+				if (args->status[index] == 0) {
+					args->status[index] = 16777216;
 					linked_list_add(&linkedList, index);
 				}
 			}
@@ -160,15 +162,19 @@ void do_calculation_wasm(int *status, int width, int height,
 	for (int i = 0; i < thread_count; i++) {
 		int topHeight = i * height / thread_count;
 		int bottomHeight = (i + 1) * height / thread_count;
+		Arguments args = {
+			.status = status, .remin = remin, .immax = immax, .realChange = realChange, .imagChange = imagChange,
+			.width = width, .top_height = topHeight, .bottom_height = bottomHeight, .max_iters = max_iters
+		};
 		switch (instructions) {
 			case None:
-				do_calculation_naive(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
+				do_calculation_naive(&args);
 				break;
 			case SSE:
-				do_calculation_sse(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
+				do_calculation_sse(&args);
 				break;
 			case Wasm:
-				do_calculation_wasm_simd(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
+				do_calculation_wasm_simd(&args);
 				break;
 		}
 	}
