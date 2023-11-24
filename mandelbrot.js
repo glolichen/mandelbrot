@@ -87,7 +87,13 @@ function draw() {
 document.getElementById("generate").onclick = draw;
 Module['onRuntimeInitialized'] = draw;
 
+var isWaiting = false, isProcessing = false;
+
+// https://stackoverflow.com/questions/22427395/what-is-the-google-map-zoom-algorithm
 addEventListener("wheel", (event) => {
+	if (isProcessing)
+		return;
+
 	let width = window.screen.width;
 	let height = window.screen.height;
 
@@ -108,8 +114,6 @@ addEventListener("wheel", (event) => {
 		let xOnImage = remin + (2 * redistance / width) * clickX;
 		let yOnImage = immax - (2 * imdistance / height) * clickY;
 
-		console.log(xOnImage, yOnImage);
-
 		let newMapWidth = 2 * 0.75 * redistance;//lets say that zoomFactor = <1.0, maxZoomFactor>
 		let newMapHeight = 2 * 0.75 * imdistance;
 		
@@ -118,101 +122,21 @@ addEventListener("wheel", (event) => {
 		let right = left + newMapWidth;
 		let bottom = top + newMapHeight;
 
-		console.log(top, bottom, left, right);
-
 		recenter = (right + left) / 2;
 		redistance = (right - left) / 2;
 		imcenter = (bottom + top) / 2;
+
+		console.log("zoom");
 	}
-	draw();
+	if (!isWaiting) {
+		isWaiting = true;
+		setTimeout(() => {
+			isProcessing = true;
+			draw();
+			isProcessing = false, isWaiting = false;
+		}, 500);
+	}
 });
-
-// // https://stackoverflow.com/a/175787
-// function isNumeric(str) {
-// 	return !isNaN(str) && !isNaN(parseFloat(str));
-// }
-// function isInteger(str) {
-// 	return Number.isInteger(parseFloat(str));
-// }
-
-// const warn = document.getElementById("warn");
-// const canvas = document.getElementById("canvas");
-
-// const FIELD_ID = ["res", "remin", "immin", "remax", "immax", "iters", "threads", "simd"];
-// const FIELD_NAME = ["resolution", "min real", "min imag", "max real", "max imag", "iterations", "threads", "simd"];
-// const SIMD = ["none", "sse", "wasm"];
-
-// document.getElementById("generate").onclick = () => {
-// 	let input = new Array(8);
-// 	for (let i = 0; i < 8; i++) {
-// 		input[i] = document.getElementById(FIELD_ID[i]).value;
-// 		if (i == 0 || (i >= 5 && i <= 6)) {
-// 			if (isInteger(input[i]) && parseInt(input[i]) > 0)
-// 				input[i] = parseInt(input[i]);
-// 			else {
-// 				warn.textContent = `Field "${FIELD_NAME[i]}" must be a positive integer`;
-// 				return;
-// 			}
-// 		}
-// 		if (i >= 1 && i <= 4) {
-// 			if (isNumeric(input[i]))
-// 				input[i] = parseFloat(input[i]);
-// 			else {
-// 				warn.textContent = `Field "${FIELD_NAME[i]}" must be numeric`;
-// 				return;
-// 			}
-// 		}
-// 	}
-
-// 	if (input[1] >= input[3]) {
-// 		warn.textContent = `Min real must be less than max real`;
-// 		return;
-// 	}
-// 	if (input[2] >= input[4]) {
-// 		warn.textContent = `Min imag must be less than max imag`;
-// 		return;
-// 	}
-
-// 	let start = new Date();
-
-// 	warn.textContent = "";
-
-// 	let width, height;
-
-// 	let wthRatio = (input[3] - input[1]) / (input[4] - input[2]);
-// 	// let wthRatio = (remax - remin) / (immax - immin);
-// 	if (wthRatio >= 1) {
-// 		width = Math.floor(input[0]);
-// 		height = Math.floor(input[0] / wthRatio);
-// 	}
-// 	else {
-// 		height = Math.floor(input[0]);
-// 		width = Math.floor(input[0] * wthRatio);
-// 	}
-
-// 	let ctx = canvas.getContext("2d");
-
-// 	ctx.canvas.width  = width;
-// 	ctx.canvas.height = height;
-
-// 	let simd = SIMD.indexOf(input[7]);
-// 	if (simd == -1)
-// 		simd = 0;
-
-// 	let colors = genMandelbrot(width, height, input[1], input[2], input[3], input[4], input[5], input[6], simd);
-
-// 	let startDraw = new Date();
-
-// 	for (let i = 0; i < width * height; i++) {
-// 		ctx.fillStyle = `rgba(${red(colors[i])}, ${green(colors[i])}, ${blue(colors[i])}, 255)`;
-// 		ctx.fillRect(i % width, Math.floor(i / width), 1, 1);
-// 	}
-
-// 	let finish = new Date();
-
-// 	console.log(`drawing time: ${finish - startDraw}ms`);
-// 	console.log(`total time: ${finish - start}ms`);
-// };
 
 // https://www.w3schools.com/howto/howto_js_draggable.asp
 dragElement(document.getElementById("options"));
