@@ -14,14 +14,16 @@
 
 v128_t oneWasm, twoWasm, fourWasm, quarterWasm;
 
-v128_t get_iterations_wasm_simd(const v128_t *real, const v128_t *imag, int num_nums, int max_iters) {
-	v128_t result = wasm_f64x2_splat(0);
+int *get_iterations_wasm_simd(const v128_t *real, const v128_t *imag, int num_nums, int max_iters) {
+	int *result = (int *) calloc(2 * sizeof(int), sizeof(int));
+
 	v128_t x = *real, y = *imag;
 
 	int skipCalculation = 0;
 
 	// https://en.wikipedia.org/wiki/Plotting_algorithms_for_the_Mandelbrot_set#Cardioid_/_bulb_checking
 	// but simd-ified
+	// TODO: BAD! some preicsion problems that result in a screw up picture
 	v128_t p = wasm_f64x2_add(wasm_f64x2_mul(wasm_f64x2_add(x, oneWasm), wasm_f64x2_add(x, oneWasm)), wasm_f64x2_mul(y, y));
 	v128_t q = wasm_f64x2_add(wasm_f64x2_mul(wasm_f64x2_sub(x, quarterWasm), wasm_f64x2_sub(x, quarterWasm)), wasm_f64x2_mul(y, y));
 	v128_t r = wasm_f64x2_mul(q, wasm_f64x2_add(q, wasm_f64x2_sub(x, quarterWasm)));
@@ -48,10 +50,10 @@ v128_t get_iterations_wasm_simd(const v128_t *real, const v128_t *imag, int num_
 		x = tempReal;
 
 		norm = wasm_f64x2_add(x2, y2);
-		justEscaped = wasm_i32x4_bitmask(wasm_f64x2_ge(norm, fourWasm));
+		justEscaped = wasm_i64x2_bitmask(wasm_f64x2_ge(norm, fourWasm));
 		for (int i = 0; i < num_nums; i++) {
 			if ((justEscaped & (1 << i)) && !(prevEscaped & (1 << i)))
-				result[i] = get_color(norm[i], iters, max_iters);
+				result[i] = get_color(i == 0 ? wasm_f64x2_extract_lane(norm, 0) : wasm_f64x2_extract_lane(norm, 1), iters, max_iters);
 		}
 		prevEscaped |= justEscaped;
 		// 0b11 (all true) = 3
@@ -61,6 +63,7 @@ v128_t get_iterations_wasm_simd(const v128_t *real, const v128_t *imag, int num_
 
 	return result;
 }
+
 void do_calculation_wasm_simd(int *status, double remin, double immax, double realChange, double imagChange, int width, int top_height, int bottom_height, int max_iters) {
 	oneWasm = wasm_f64x2_splat(1);
 	twoWasm = wasm_f64x2_splat(2);
@@ -72,7 +75,7 @@ void do_calculation_wasm_simd(int *status, double remin, double immax, double re
 	v128_t realChanges = wasm_f64x2_splat(realChange);
 	v128_t imagChanges = wasm_f64x2_splat(imagChange);
 	
-	v128_t iterses;
+	int *iterses;
 
 	LinkedList linkedList; // either a stack or deque
 	make_linked_list(&linkedList);
@@ -128,6 +131,7 @@ void do_calculation_wasm_simd(int *status, double remin, double immax, double re
 				}
 			}
 		}
+		free(iterses);
 	}
 
 	free(cur);
@@ -135,6 +139,7 @@ void do_calculation_wasm_simd(int *status, double remin, double immax, double re
 	free(cy);
 
 	free_linked_list(&linkedList);
+
 }
 
 enum { None, SSE, Wasm };
@@ -148,8 +153,6 @@ void do_calculation_wasm(int *status, int width, int height,
 	double realChange, imagChange;
 	realChange = (remax - remin) / width;
 	imagChange = (immax - immin) / height;
-
-	printf("%f %f\n", realChange, imagChange);
 
 	for (int i = 0; i < thread_count; i++) {
 		int topHeight = i * height / thread_count;
