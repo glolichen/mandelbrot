@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <wasm_simd128.h>
+#include <emscripten.h>
 
 #include "wasm.h"
 #include "base.h"
