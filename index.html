@@ -5,10 +5,7 @@
 		<title>test</title>
 	</head>
 	<body>
-		<label for="res">Resolution</label>
-		<input name="res" id="res" type="number">
-		<br>
-		<label for="remin">Min real</label>
+		<!-- <label for="remin">Min real</label>
 		<input name="remin" id="remin" type="number">
 		<br>
 		<label for="immin">Min imag</label>
@@ -19,23 +16,27 @@
 		<br>
 		<label for="immax">Max imag</label>
 		<input name="immax" id="immax" type="number">
-		<br>
-		<label for="iters">Iterations</label>
-		<input name="iters" id="iters" type="number">
-		<br>
-		<label for="threads"># of threads</label>
-		<input name="threads" id="threads" type="number">
-		<br>
-		<label for="simd">SIMD instruction set</label>
-		<select name="simd" id="simd">
-			<option value="none">None</option>
-			<option value="sse">SSE</option>
-			<option value="avx2">AVX</option>
-		</select> 
-		<br>
-		<p id="warn"></p>
-		<button id="generate">Generate</button>
-		<br>
+		<br> -->
+		<div id="options">
+			<div id="optionsheader">Drag to move</div>
+			<label for="iterations">Iterations</label>
+			<input name="iterations" id="iterations" type="number">
+			<br>
+			<label for="threads"># of threads</label>
+			<input name="threads" id="threads" type="number">
+			<br>
+			<label for="simd">SIMD instruction set</label>
+			<select name="simd" id="simd">
+				<option value="none">None</option>
+				<option value="sse">SSE</option>
+				<option value="wasm">Wasm SIMD</option>
+			</select> 
+			<br>
+			<p id="warn"></p>
+			<button id="generate">Generate</button>
+			<br>
+		</div>
+
 		<canvas id="canvas"></canvas>
 
 		<script src="libmandel.js"></script>
