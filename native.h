@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-enum { None, SSE, AVX2, AVX512 };
+enum { None, SSE, AVX2, GMP };
 
 int write_png(const char *file_name, int width, int height, 
 			  double remin, double immin, double remax, double immax,	

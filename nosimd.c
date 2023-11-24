@@ -29,9 +29,7 @@ int get_iterations_naive(double real, double imag, int max_iters) {
 
 	return get_color(x2 + y2, iters, max_iters);
 }
-void do_calculation_naive(int *status, double remin, double immax, double realChange, double imagChange, int width, int top_height, int bottom_height, int max_iters) {
-	printf("%d %d %d\n", width, top_height, bottom_height);
-	
+void do_calculation_naive(int *status, double remin, double immax, double realChange, double imagChange, int width, int top_height, int bottom_height, int max_iters) {	
 	int iters;
 	double real, imag;
 

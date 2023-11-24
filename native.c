@@ -9,6 +9,7 @@
 #include "native.h"
 #include "base.h"
 #include "nosimd.h"
+#include "gmp.h"
 #include "sse.h"
 #include "avx2.h"
 #include "linkedlist.h"
@@ -35,6 +36,9 @@ void do_calculation_native(int *status, int width, int height,
 			case AVX2:
 				do_calculation_avx2(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
 				break;
+			case GMP:
+				do_calculation_gmp(status, remin, immax, realChange, imagChange, width, topHeight, bottomHeight, max_iters);
+				break;
 		}
 	}
 }
@@ -42,6 +46,8 @@ void do_calculation_native(int *status, int width, int height,
 int write_png(const char *file_name, int width, int height, 
 			  double remin, double immin, double remax, double immax,	
 			  int max_iters, int thread_count, int instructions) {	
+
+	printf("%d\n", instructions);
 
 	png_structp png_ptr = NULL;
 	png_infop info_ptr = NULL;
