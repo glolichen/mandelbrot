@@ -3,6 +3,10 @@
 	font-weight: bold;
 }
 
+.smallinput {
+	width: 5rem;
+}
+
 body {
 	margin: 0;
 }
@@ -20,6 +24,9 @@ body {
 	background-color: #f1f1f1;
 	border: 1px solid #d3d3d3;
 	text-align: center;
+	padding: 1rem;
+	resize: both;
+	overflow: auto;
 }
 #optionsheader {
 	padding: 10px;

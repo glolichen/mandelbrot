@@ -82,6 +82,8 @@ function draw() {
 	console.log(`total time: ${finish - start}ms`);
 }
 
+document.getElementById("generate").onclick = draw;
+
 
 // // https://stackoverflow.com/a/175787
 // function isNumeric(str) {
