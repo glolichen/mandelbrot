@@ -1,3 +1,6 @@
-gcc main.c base.c nosimd.c sse.c avx2.c native.c linkedlist.c -o mandelbrot \
-	-Wall -Wextra -pedantic -fopenmp -lpng -lm \
-	-mavx2 -mavx512f -mtune=native -march=native -O3
+gcc main.c base.c nosimd.c sse.c avx2.c gmp.c native.c linkedlist.c -o mandelbrot \
+	-Wall -Wextra -Wpedantic -fopenmp -lpng -lm -lgmp \
+	-mavx2 -mtune=native -march=native \
+	-fsanitize=undefined \
+	-O3 \
+	# -O0 -g \
