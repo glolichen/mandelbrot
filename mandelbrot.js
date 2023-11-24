@@ -41,7 +41,7 @@ function draw() {
 	let remin = recenter - redistance;
 	let remax = recenter + redistance;
 
-	let imdistance = (remax - remin) * (height / width) / 2;
+	let imdistance = redistance * (height / width);
 
 	let immin = imcenter - imdistance;
 	let immax = imcenter + imdistance;
@@ -62,6 +62,8 @@ function draw() {
 
 	ctx.canvas.width  = width;
 	ctx.canvas.height = height;
+
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 	let simd = SIMD.indexOf(input[2]);
 	if (simd == -1)
@@ -85,6 +87,45 @@ function draw() {
 document.getElementById("generate").onclick = draw;
 Module['onRuntimeInitialized'] = draw;
 
+addEventListener("wheel", (event) => {
+	let width = window.screen.width;
+	let height = window.screen.height;
+
+	if (event.deltaY > 0) {
+
+	}
+	if (event.deltaY < 0) {
+		// zoom in
+		// console.log(event.deltaY, event.clientX, event.clientY);
+		let clickX = event.clientX;
+		let clickY = event.clientY;
+	
+		let imdistance = redistance * (height / width);
+	
+		let remin = recenter - redistance;
+		let immax = imcenter + imdistance;
+
+		let xOnImage = remin + (2 * redistance / width) * clickX;
+		let yOnImage = immax - (2 * imdistance / height) * clickY;
+
+		console.log(xOnImage, yOnImage);
+
+		let newMapWidth = 2 * 0.75 * redistance;//lets say that zoomFactor = <1.0, maxZoomFactor>
+		let newMapHeight = 2 * 0.75 * imdistance;
+		
+		let left = xOnImage - (clickX - 0) * (newMapWidth / width);
+		let top = yOnImage - (height - clickY) * (newMapHeight / height);
+		let right = left + newMapWidth;
+		let bottom = top + newMapHeight;
+
+		console.log(top, bottom, left, right);
+
+		recenter = (right + left) / 2;
+		redistance = (right - left) / 2;
+		imcenter = (bottom + top) / 2;
+	}
+	draw();
+});
 
 // // https://stackoverflow.com/a/175787
 // function isNumeric(str) {

@@ -1,5 +1,5 @@
-#ifndef MANDELBROT_H
-#define MANDELBROT_H
+#ifndef NATIVE_H
+#define NATIVE_H
 
 #include <stdio.h>
 
