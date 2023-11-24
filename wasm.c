@@ -13,7 +13,7 @@
 #include "sse.h"
 #include "linkedlist.h"
 
-v128_t oneWasm, twoWasm, fourWasm, quarterWasm;
+v128_t oneWasm, twoWasm, fourWasm, quarterWasm, sixteenthWasm;
 
 int *get_iterations_wasm_simd(const v128_t *real, const v128_t *imag, int num_nums, int max_iters) {
 	int *result = (int *) calloc(2 * sizeof(int), sizeof(int));
@@ -24,13 +24,14 @@ int *get_iterations_wasm_simd(const v128_t *real, const v128_t *imag, int num_nu
 
 	// https://en.wikipedia.org/wiki/Plotting_algorithms_for_the_Mandelbrot_set#Cardioid_/_bulb_checking
 	// but simd-ified
-	// TODO: BAD! some preicsion problems that result in a screw up picture
 	v128_t p = wasm_f64x2_add(wasm_f64x2_mul(wasm_f64x2_add(x, oneWasm), wasm_f64x2_add(x, oneWasm)), wasm_f64x2_mul(y, y));
 	v128_t q = wasm_f64x2_add(wasm_f64x2_mul(wasm_f64x2_sub(x, quarterWasm), wasm_f64x2_sub(x, quarterWasm)), wasm_f64x2_mul(y, y));
 	v128_t r = wasm_f64x2_mul(q, wasm_f64x2_add(q, wasm_f64x2_sub(x, quarterWasm)));
 	v128_t s = wasm_f64x2_mul(quarterWasm, wasm_f64x2_mul(y, y));
+	int cond1 = wasm_i64x2_bitmask(wasm_f64x2_le(p, sixteenthWasm));
+	int cond2 = wasm_i64x2_bitmask(wasm_f64x2_le(r, s));
 	for (int i = 0; i < num_nums; i++) {
-		if (p[i] <= 0.0625 || r[i] <= s[i]) {
+		if (((cond1 >> i) & 1) || ((cond2 >> i) & 1)) {
 			result[i] = 0;
 			skipCalculation |= 1 << i;
 		}
@@ -70,6 +71,7 @@ void do_calculation_wasm_simd(int *status, double remin, double immax, double re
 	twoWasm = wasm_f64x2_splat(2);
 	fourWasm = wasm_f64x2_splat(4);
 	quarterWasm = wasm_f64x2_splat(0.25);
+	sixteenthWasm = wasm_f64x2_splat(0.0625);
 	
 	v128_t remins = wasm_f64x2_splat(remin);
 	v128_t immaxes = wasm_f64x2_splat(immax);
