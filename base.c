@@ -76,10 +76,13 @@ int get_color(double norm, int iters, int max_iters) {
 	else {
 		double nsmooth = iters + 1 - log(log(norm) / 2) / log(2);
 		// ret = hsv2rgb(((int) (240 - nsmooth - pow(1.02, nsmooth))) % 360, 0.6, 0.8);
-		ret = hsv2rgb(mod((int) 240 - nsmooth, 360), 0.6, 0.8);
+		// printf("%f\n", nsmooth);
+		// ret = hsv2rgb(mod((int) 240 - nsmooth, 360), 0.6, 0.8);
+		// printf("%f\n", 0.7 + nsmooth / 20.0);
+		ret = hsv2rgb(mod((int) 240 - nsmooth, 360), min(0.2 + nsmooth / 15.0, 0.6), min(0.2 + nsmooth / 20.0, 0.8));
 
 		// double hue = ((double) iters) + 1.0 - log(log(sqrt(norm))) / log(2.0);  // 2 is escape radius
-		// printf("%f\n", hue);
+		// printf("%f\n", hue)
 		// // hue = 0.4 + 10.0 * hue; // adjust to make it prettier
 		// // the hsv function expects values from 0 to 360
 		// while (hue > 360.0)
@@ -112,9 +115,9 @@ int get_color(double norm, int iters, int max_iters) {
 	return ret;
 }
 
-int min(int a, int b) {
+double min(double a, double b) {
 	return a <= b ? a : b;
 }
-int max(int a, int b) {
+double max(double a, double b) {
 	return a >= b ? a : b;
 }

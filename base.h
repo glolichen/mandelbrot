@@ -14,8 +14,8 @@
 
 extern int DIRECTION[4][2];
 
-int min(int a, int b);
-int max(int a, int b);
+double min(double a, double b);
+double max(double a, double b);
 
 int get_color(double norm, int iters, int max_iters);
 
