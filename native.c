@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <png.h>
-#include <omp.h>
+#include <pthread.h>
 
 #include "native.h"
 #include "base.h"
@@ -22,6 +22,13 @@ void do_calculation_native(int *status, int width, int height,
 	realChange = (remax - remin) / width;
 	imagChange = (immax - immin) / height;
 
+	int returnCode;
+
+	// thanks wikipedia https://en.wikipedia.org/wiki/Pthreads#Example
+
+	pthread_t *threads = (pthread_t *) malloc(thread_count * sizeof(pthread_t));
+	Arguments *threadArgs = (Arguments *) malloc(thread_count * sizeof(Arguments));
+
 	for (int i = 0; i < thread_count; i++) {
 		int topHeight = i * height / thread_count;
 		int bottomHeight = (i + 1) * height / thread_count;
@@ -29,21 +36,33 @@ void do_calculation_native(int *status, int width, int height,
 			.status = status, .remin = remin, .immax = immax, .realChange = realChange, .imagChange = imagChange,
 			.width = width, .top_height = topHeight, .bottom_height = bottomHeight, .max_iters = max_iters
 		};
+		threadArgs[i] = args;
+
 		switch (instructions) {
 			case None:
-				do_calculation_naive(&args);
+				returnCode = pthread_create(&threads[i], NULL, do_calculation_naive, &threadArgs[i]);
 				break;
 			case SSE:
-				do_calculation_sse(&args);
+				returnCode = pthread_create(&threads[i], NULL, do_calculation_sse, &threadArgs[i]);
 				break;
 			case AVX2:
-				do_calculation_avx2(&args);
+				returnCode = pthread_create(&threads[i], NULL, do_calculation_avx2, &threadArgs[i]);
 				break;
 			case GMP:
-				do_calculation_gmp(&args);
+				returnCode = pthread_create(&threads[i], NULL, do_calculation_gmp, &threadArgs[i]);
 				break;
 		}
+
+   		assert(!returnCode);
 	}
+
+	for (int i = 0; i < thread_count; i++) {
+		returnCode = pthread_join(threads[i], NULL);
+		assert(!returnCode);
+	}
+
+	free(threads);
+	free(threadArgs);
 }
 
 int write_png(const char *file_name, int width, int height, 
