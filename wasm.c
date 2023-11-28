@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <wasm_simd128.h>
+#include <pthread.h>
 #include <emscripten.h>
 
 #include "wasm.h"
@@ -66,7 +67,7 @@ int *get_iterations_wasm_simd(const v128_t *real, const v128_t *imag, int num_nu
 	return result;
 }
 
-void do_calculation_wasm_simd(void *arguments) {
+void *do_calculation_wasm_simd(void *arguments) {
 	Arguments *args = (Arguments *) arguments;
 
 	oneWasm = wasm_f64x2_splat(1);
@@ -144,7 +145,7 @@ void do_calculation_wasm_simd(void *arguments) {
 	free(cy);
 
 	free_linked_list(&linkedList);
-
+	return NULL;
 }
 
 enum { None, SSE, Wasm };
@@ -159,6 +160,13 @@ void do_calculation_wasm(int *status, int width, int height,
 	realChange = (remax - remin) / width;
 	imagChange = (immax - immin) / height;
 
+	int returnCode;
+
+	// thanks wikipedia https://en.wikipedia.org/wiki/Pthreads#Example
+
+	pthread_t *threads = (pthread_t *) malloc(thread_count * sizeof(pthread_t));
+	Arguments *threadArgs = (Arguments *) malloc(thread_count * sizeof(Arguments));
+
 	for (int i = 0; i < thread_count; i++) {
 		int topHeight = i * height / thread_count;
 		int bottomHeight = (i + 1) * height / thread_count;
@@ -166,18 +174,30 @@ void do_calculation_wasm(int *status, int width, int height,
 			.status = status, .remin = remin, .immax = immax, .realChange = realChange, .imagChange = imagChange,
 			.width = width, .top_height = topHeight, .bottom_height = bottomHeight, .max_iters = max_iters
 		};
+		threadArgs[i] = args;
+
 		switch (instructions) {
 			case None:
-				do_calculation_naive(&args);
+				returnCode = pthread_create(&threads[i], NULL, do_calculation_naive, &threadArgs[i]);
 				break;
 			case SSE:
-				do_calculation_sse(&args);
+				returnCode = pthread_create(&threads[i], NULL, do_calculation_sse, &threadArgs[i]);
 				break;
 			case Wasm:
-				do_calculation_wasm_simd(&args);
+				returnCode = pthread_create(&threads[i], NULL, do_calculation_wasm_simd, &threadArgs[i]);
 				break;
 		}
+
+   		assert(!returnCode);
 	}
+
+	for (int i = 0; i < thread_count; i++) {
+		returnCode = pthread_join(threads[i], NULL);
+		assert(!returnCode);
+	}
+
+	free(threads);
+	free(threadArgs);
 
 	clock_t difference = clock() - before;
 	int msec = difference * 1000 / CLOCKS_PER_SEC;
