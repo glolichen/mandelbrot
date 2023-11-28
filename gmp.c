@@ -61,7 +61,7 @@ int get_iterations_gmp(long double real, long double imag, int max_iters) {
 
 	return get_color(ldNorm, iters, max_iters);
 }
-void do_calculation_gmp(void *arguments) {
+void *do_calculation_gmp(void *arguments) {
 	Arguments *args = (Arguments *) arguments;
 		
 	int iters;
@@ -124,4 +124,5 @@ void do_calculation_gmp(void *arguments) {
 	}
 
 	free_linked_list(&linkedList);
+	return NULL;
 }
