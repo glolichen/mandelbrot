@@ -218,6 +218,13 @@ canvas.ondragend = e => {
 	processDrag(e);
 };
 
+document.getElementById("save").onclick = () => {
+	// https://stackoverflow.com/a/44487883
+	var link = document.getElementById("download");
+	link.setAttribute("download", "image.png");
+	link.setAttribute("href", canvas.toDataURL("image/png").replace("image/png", "image/octet-stream"));
+	link.click();
+}
 
 // https://www.w3schools.com/howto/howto_js_draggable.asp
 dragElement(document.getElementById("options"));
