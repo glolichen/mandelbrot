@@ -41,3 +41,7 @@ canvas {
 	width: 0px;
 	height: 0px;
 }
+
+img {
+	cursor: grab;
+}
