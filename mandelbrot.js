@@ -12,7 +12,7 @@ var imcenter = 0;
 var workerIsTerminated = false;
 var worker = new Worker("./worker.js");
 
-function scaleAgain(image, factor, x, y) {
+function scaleImage(image, factor, x, y) {
 	let outermostDiv = image;
 	while (outermostDiv.parentNode != document.body)
 		outermostDiv = outermostDiv.parentNode;
@@ -20,6 +20,18 @@ function scaleAgain(image, factor, x, y) {
 	let newDiv = document.createElement("div");
 	newDiv.style.transformOrigin = `${x}px ${y}px`;
 	newDiv.style.transform = `scale(${factor})`;
+	newDiv.appendChild(outermostDiv);
+	document.body.appendChild(newDiv);
+}
+function translateImage(image, x, y) {
+	let outermostDiv = image;
+	while (outermostDiv.parentNode != document.body)
+		outermostDiv = outermostDiv.parentNode;
+
+	console.log(outermostDiv);
+
+	let newDiv = document.createElement("div");
+	newDiv.style.transform = `translate(${x}px, ${y}px)`;
 	newDiv.appendChild(outermostDiv);
 	document.body.appendChild(newDiv);
 }
@@ -127,7 +139,7 @@ function processWheel(e) {
 
 	let factor = Math.pow(0.5, e.deltaY > 0 ? -1 : 1);
 
-	scaleAgain(oldCanvasImage, 1 / factor, clickX, clickY);
+	scaleImage(oldCanvasImage, 1 / factor, clickX, clickY);
 
 	let width = document.documentElement.clientWidth;
 	let height = document.documentElement.clientHeight;
@@ -156,11 +168,48 @@ function processWheel(e) {
 	draw();
 }
 
-function processDrag() {
+oldCanvasImage.onwheel = e => {
+	processWheel(e);
+};
 
+var dragStartX = -1;
+var dragStartY = -1;
+
+function processDrag(e) {
+	worker.terminate();
+	workerIsTerminated = true;
+	e.preventDefault();
+
+	let endX = e.clientX;
+	let endY = e.clientY;
+
+	translateImage(oldCanvasImage, endX - dragStartX, endY - dragStartY);
+
+	let width = document.documentElement.clientWidth;
+	let height = document.documentElement.clientHeight;
+
+	let imdistance = redistance * (height / width);
+
+	recenter -= (2 * redistance / width) * (endX - dragStartX);
+	imcenter += (2 * imdistance / height) * (endY - dragStartY);
+	
+	console.log("move");
+
+	dragStartX = -1, dragStartY = -1;
+
+	draw();
 }
 
-oldCanvasImage.addEventListener("wheel", e => processWheel(e));
+oldCanvasImage.ondragstart = e => {
+	dragStartX = e.clientX;
+	dragStartY = e.clientY;
+};
+oldCanvasImage.ondragend = e => {
+	if (dragStartX == -1 || dragStartY == -1)
+		return;
+	processDrag(e);
+};
+
 
 // https://www.w3schools.com/howto/howto_js_draggable.asp
 dragElement(document.getElementById("options"));
