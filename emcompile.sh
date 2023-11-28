@@ -1,5 +1,5 @@
 emcc base.c nosimd.c sse.c wasm.c linkedlist.c -o libmandel.js \
 	-Wall -Wextra -pedantic -lm -msse2 -msimd128 -O3 -ffast-math \
 	-sEXPORTED_FUNCTIONS=['_do_calculation_wasm','_malloc','_free'] \
-	-sEXPORTED_RUNTIME_METHODS=ccall,cwrap \
+	-sEXPORTED_RUNTIME_METHODS=ccall,cwrap -pthread \
 	-sALLOW_MEMORY_GROWTH -sASSERTIONS -s WASM=1
