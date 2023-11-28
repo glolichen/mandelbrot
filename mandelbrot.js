@@ -9,23 +9,36 @@ var recenter = 0;
 var redistance = 5;
 var imcenter = 0;
 
-const worker = new Worker("./worker.js");
+var workerIsTerminated = false;
+var worker = new Worker("./worker.js");
 
-var curCSSScale = 1;
+function scaleAgain(image, factor, x, y) {
+	let outermostDiv = image;
+	while (outermostDiv.parentNode != document.body)
+		outermostDiv = outermostDiv.parentNode;
+
+	let newDiv = document.createElement("div");
+	newDiv.style.transformOrigin = `${x}px ${y}px`;
+	newDiv.style.transform = `scale(${factor})`;
+	newDiv.appendChild(outermostDiv);
+	document.body.appendChild(newDiv);
+}
+
+function clearTransforms(image) {
+	let curDiv = image.parentNode;
+	document.body.appendChild(image);
+
+	let parentOfCur;
+	while (curDiv != null && curDiv != document.body) {
+		parentOfCur = curDiv.parentNode;
+		parentOfCur.removeChild(curDiv);
+		curDiv = parentOfCur;
+	}
+}
 
 function draw() {
-	// https://stackoverflow.com/a/17906462
-	oldCanvas.className = "";
-	oldCanvas.width = canvas.width;
-	oldCanvas.height = canvas.height;
-	oldCanvas.style.transformOrigin = canvas.style.transformOrigin;
-	oldCanvas.style.transform = canvas.style.transform;
-	var destinationCtx = oldCanvas.getContext("2d");
-	destinationCtx.drawImage(canvas, 0, 0);
-	canvas.className = "hidden";
-
-	// //copy the data
-	// destinationCtx.drawImage(sourceCanvas, 0, 0);
+	if (workerIsTerminated)
+		worker = new Worker("./worker.js");
 
 	let width = document.documentElement.clientWidth;
 	let height = document.documentElement.clientHeight;
@@ -56,10 +69,8 @@ function draw() {
 	let imgdata = ctx.getImageData(0, 0, width, height);
 	let imgdatalen = imgdata.data.length;
 
-	ctx.canvas.width  = width;
+	ctx.canvas.width = width;
 	ctx.canvas.height = height;
-
-	// ctx.clearRect(0, 0, canvas.width, canvas.height);
 
 	let simd = SIMD.indexOf(input[2]);
 	if (simd == -1)
@@ -85,37 +96,41 @@ function draw() {
 			imgdata.data[4 * i + 3] = 255;
 		}
 		ctx.putImageData(imgdata, 0, 0);
-		curCSSScale = 1;
 		canvas.style.transform = "scale(1)";
 		canvas.className = "";
-		oldCanvas.className = "hidden";
+		oldCanvasImage.className = "hidden";
+		clearTransforms(oldCanvasImage);
+		// https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL
+		oldCanvasImage.src = canvas.toDataURL();
+		// this is weird - if there is no timeout here, there would be a very short period of time
+		// where the oldCanvasImage is not rendered and the canvas is hidden, creating a white screen
+		// adding this delay to hide the canvas fixes this issue
+		oldCanvasImage.className = "";
+		setTimeout(() => {
+			canvas.className = "hidden";
+		}, 100);
 	}
 }
 
 
 document.getElementById("generate").onclick = draw;
-worker.onmessage = e => {
-	if (e.data == "initialized")
-		draw();
-}
-
-var isWaiting = false, isProcessing = false;
+draw();
 
 // https://stackoverflow.com/questions/22427395/what-is-the-google-map-zoom-algorithm
-addEventListener("wheel", (event) => {
-	event.preventDefault();
+function processWheel(e) {
+	worker.terminate();
+	workerIsTerminated = true;
+	e.preventDefault();
 
-	if (isProcessing)
-		return;
+	let clickX = e.clientX;
+	let clickY = e.clientY;
 
-	let factor = (event.deltaY > 0 ? 1 / 0.8 : 0.8);
+	let factor = Math.pow(0.5, e.deltaY > 0 ? -1 : 1);
+
+	scaleAgain(oldCanvasImage, 1 / factor, clickX, clickY);
 
 	let width = document.documentElement.clientWidth;
 	let height = document.documentElement.clientHeight;
-
-	// zoom in
-	let clickX = event.clientX;
-	let clickY = event.clientY;
 
 	let imdistance = redistance * (height / width);
 
@@ -125,7 +140,7 @@ addEventListener("wheel", (event) => {
 	let xOnImage = remin + (2 * redistance / width) * clickX;
 	let yOnImage = immax - (2 * imdistance / height) * clickY;
 
-	let newMapWidth = 2 * factor * redistance;//lets say that zoomFactor = <1.0, maxZoomFactor>
+	let newMapWidth = 2 * factor * redistance;
 	let newMapHeight = 2 * factor * imdistance;
 	
 	let left = xOnImage - (clickX) * (newMapWidth / width);
@@ -136,22 +151,16 @@ addEventListener("wheel", (event) => {
 	recenter = (right + left) / 2;
 	redistance = (right - left) / 2;
 	imcenter = (bottom + top) / 2;
-
-	canvas.style.transformOrigin = `${clickX}px ${clickY}px`;
-	curCSSScale /= factor;
-	canvas.style.transform = `scale(${curCSSScale})`;
-
 	console.log("zoom");
-	
-	if (!isWaiting) {
-		isWaiting = true;
-		setTimeout(() => {
-			isProcessing = true;
-			draw();
-			isProcessing = false, isWaiting = false;
-		}, 500);
-	}
-});
+
+	draw();
+}
+
+function processDrag() {
+
+}
+
+oldCanvasImage.addEventListener("wheel", e => processWheel(e));
 
 // https://www.w3schools.com/howto/howto_js_draggable.asp
 dragElement(document.getElementById("options"));
