@@ -28,8 +28,6 @@ function translateImage(image, x, y) {
 	while (outermostDiv.parentNode != document.body)
 		outermostDiv = outermostDiv.parentNode;
 
-	console.log(outermostDiv);
-
 	let newDiv = document.createElement("div");
 	newDiv.style.transform = `translate(${x}px, ${y}px)`;
 	newDiv.appendChild(outermostDiv);
@@ -137,7 +135,7 @@ function processWheel(e) {
 	let clickX = e.clientX;
 	let clickY = e.clientY;
 
-	let factor = Math.pow(0.5, e.deltaY > 0 ? -1 : 1);
+	let factor = Math.pow(0.75, e.deltaY > 0 ? -1 : 1);
 
 	scaleImage(oldCanvasImage, 1 / factor, clickX, clickY);
 
@@ -163,12 +161,14 @@ function processWheel(e) {
 	recenter = (right + left) / 2;
 	redistance = (right - left) / 2;
 	imcenter = (bottom + top) / 2;
-	console.log("zoom");
 
 	draw();
 }
 
 oldCanvasImage.onwheel = e => {
+	processWheel(e);
+};
+canvas.onwheel = e => {
 	processWheel(e);
 };
 
@@ -193,8 +193,6 @@ function processDrag(e) {
 	recenter -= (2 * redistance / width) * (endX - dragStartX);
 	imcenter += (2 * imdistance / height) * (endY - dragStartY);
 	
-	console.log("move");
-
 	dragStartX = -1, dragStartY = -1;
 
 	draw();
@@ -205,6 +203,16 @@ oldCanvasImage.ondragstart = e => {
 	dragStartY = e.clientY;
 };
 oldCanvasImage.ondragend = e => {
+	if (dragStartX == -1 || dragStartY == -1)
+		return;
+	processDrag(e);
+};
+
+canvas.ondragstart = e => {
+	dragStartX = e.clientX;
+	dragStartY = e.clientY;
+};
+canvas.ondragend = e => {
 	if (dragStartX == -1 || dragStartY == -1)
 		return;
 	processDrag(e);
