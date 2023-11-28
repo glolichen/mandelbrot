@@ -191,7 +191,10 @@ void do_calculation_wasm(int *status, int width, int height,
    		assert(!returnCode);
 	}
 
+	printf("made all threads\n");
+
 	for (int i = 0; i < thread_count; i++) {
+		printf("joining thread %d\n", i);
 		returnCode = pthread_join(threads[i], NULL);
 		assert(!returnCode);
 	}
@@ -203,4 +206,38 @@ void do_calculation_wasm(int *status, int width, int height,
 	int msec = difference * 1000 / CLOCKS_PER_SEC;
 
 	printf("calculation time: %dms\n", msec);
+}
+
+
+void do_calculation_wasm_no_thread(int *status, int width, int height, 
+			  double remin, double immin, double remax, double immax,	
+			  int max_iters, int _, int instructions) {
+		
+	clock_t before = clock();
+
+	double realChange, imagChange;
+	realChange = (remax - remin) / width;
+	imagChange = (immax - immin) / height;
+
+	Arguments args = {
+		.status = status, .remin = remin, .immax = immax, .realChange = realChange, .imagChange = imagChange,
+		.width = width, .top_height = 0, .bottom_height = height, .max_iters = max_iters
+	};
+
+	switch (instructions) {
+		case None:
+			do_calculation_naive(&args);
+			break;
+		case SSE:
+			do_calculation_sse(&args);
+			break;
+		case Wasm:
+			do_calculation_wasm_simd(&args);
+			break;
+	}
+
+	clock_t difference = clock() - before;
+	int msec = difference * 1000 / CLOCKS_PER_SEC;
+
+	printf("calculation time: %dms\n", msec);		
 }

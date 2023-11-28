@@ -5,8 +5,11 @@ function blue(num) { return num & 255; }
 importScripts("./libmandel.js");
 
 const calculate_function = Module.cwrap(
-	'do_calculation_wasm', 'void', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']
+	'do_calculation_wasm_no_thread', 'void', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']
 );
+// const calculate_function = Module.cwrap(
+// 	'do_calculation_wasm', 'void', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']
+// );
 
 function genMandelbrot(width, height, remin, immin, remax, immax, max_iters, thread_count, instructions) {
 	let data = new Int32Array(new Array(width * height));
