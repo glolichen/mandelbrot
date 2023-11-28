@@ -56,7 +56,7 @@ __m128i get_iterations_sse(const __m128d *real, const __m128d *imag, int num_num
 
 	return result;
 }
-void do_calculation_sse(void *arguments) {
+void *do_calculation_sse(void *arguments) {
 	Arguments *args = (Arguments *) arguments;
 
 	oneSSE = _mm_set1_pd(1);
@@ -133,4 +133,5 @@ void do_calculation_sse(void *arguments) {
 	free(cy);
 
 	free_linked_list(&linkedList);
+	return NULL;
 }

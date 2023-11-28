@@ -29,7 +29,7 @@ int get_iterations_naive(double real, double imag, int max_iters) {
 
 	return get_color(x2 + y2, iters, max_iters);
 }
-void do_calculation_naive(void *arguments) {	
+void *do_calculation_naive(void *arguments) {	
 	Arguments *args = (Arguments *) arguments;
 
 	int iters;
@@ -78,4 +78,5 @@ void do_calculation_naive(void *arguments) {
 	}
 
 	free_linked_list(&linkedList);
+	return NULL;
 }

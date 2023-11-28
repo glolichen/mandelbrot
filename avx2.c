@@ -56,7 +56,7 @@ __m256i get_iterations_avx2(const __m256d *real, const __m256d *imag, int num_nu
 
 	return result;
 }
-void do_calculation_avx2(void *arguments) {
+void *do_calculation_avx2(void *arguments) {
 	Arguments *args = (Arguments *) arguments;
 	
 	oneAVX2 = _mm256_set1_pd(1);
@@ -133,4 +133,5 @@ void do_calculation_avx2(void *arguments) {
 	free(cy);
 
 	free_linked_list(&linkedList);
+	return NULL;
 }
