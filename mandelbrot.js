@@ -9,8 +9,31 @@ var recenter = 0;
 var redistance = 5;
 var imcenter = 0;
 
+var widthInput = document.getElementById("width");
+var heightInput = document.getElementById("height");
+
+var currentWidth = widthInput.value = document.documentElement.clientWidth;
+var currentHeight = heightInput.value = document.documentElement.clientHeight;
+
+var windowWidth = currentWidth;
+var windowHeight = currentHeight;
+
+widthInput.onchange = () => {
+	let ratio = currentHeight / currentWidth;
+	currentHeight = heightInput.value = Math.floor(ratio * widthInput.value);
+	currentWidth = widthInput.value;
+}
+
 var workerIsTerminated = false;
 var worker = new Worker("./worker.js");
+
+function askForRescale(width, height) {
+	let ok = confirm("Detected a window resize. Update width and height of drawing canvas? OK to accept, cancel to keep current.")
+	if (!ok)
+		return;
+	windowWidth = currentWidth = widthInput.value = width;
+	windowHeight = currentHeight = heightInput.value = height;
+}
 
 function scaleImage(image, factor, x, y) {
 	let outermostDiv = image;
@@ -50,8 +73,8 @@ function draw() {
 	if (workerIsTerminated)
 		worker = new Worker("./worker.js");
 
-	let width = document.documentElement.clientWidth;
-	let height = document.documentElement.clientHeight;
+	let width = widthInput.value;
+	let height = heightInput.value;
 
 	let remin = recenter - redistance;
 	let remax = recenter + redistance;
@@ -110,15 +133,18 @@ function draw() {
 		canvas.className = "";
 		oldCanvasImage.className = "hidden";
 		clearTransforms(oldCanvasImage);
+		// scaleImage(oldCanvasImage, windowWidth / width, 0, 0);
 		// https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL
 		oldCanvasImage.src = canvas.toDataURL();
 		// this is weird - if there is no timeout here, there would be a very short period of time
-		// where the oldCanvasImage is not rendered and the canvas is hidden, creating a white screen
+		// where the oldCanvasImage is not rendered and the canvas is hidden, creating a blank screen
 		// adding this delay to hide the canvas fixes this issue
 		oldCanvasImage.className = "";
+		// figure out how to make the canvas disappear after oldCanvasImage is rendered
+		// otherwise there is blank screen, and settimeout makes a period where you can't do anything
 		setTimeout(() => {
 			canvas.className = "hidden";
-		}, 100);
+		}, 1000);
 	}
 }
 
@@ -141,6 +167,10 @@ function processWheel(e) {
 
 	let width = document.documentElement.clientWidth;
 	let height = document.documentElement.clientHeight;
+	if (windowWidth != width || windowHeight != height)
+		askForRescale(width, height);
+	width = widthInput.value;
+	height = heightInput.value;
 
 	let imdistance = redistance * (height / width);
 
@@ -168,9 +198,6 @@ function processWheel(e) {
 oldCanvasImage.onwheel = e => {
 	processWheel(e);
 };
-canvas.onwheel = e => {
-	processWheel(e);
-};
 
 var dragStartX = -1;
 var dragStartY = -1;
@@ -187,6 +214,10 @@ function processDrag(e) {
 
 	let width = document.documentElement.clientWidth;
 	let height = document.documentElement.clientHeight;
+	if (windowWidth != width || windowHeight != height)
+		askForRescale(width, height);
+	width = widthInput.value;
+	height = heightInput.value;
 
 	let imdistance = redistance * (height / width);
 
@@ -203,16 +234,6 @@ oldCanvasImage.ondragstart = e => {
 	dragStartY = e.clientY;
 };
 oldCanvasImage.ondragend = e => {
-	if (dragStartX == -1 || dragStartY == -1)
-		return;
-	processDrag(e);
-};
-
-canvas.ondragstart = e => {
-	dragStartX = e.clientX;
-	dragStartY = e.clientY;
-};
-canvas.ondragend = e => {
 	if (dragStartX == -1 || dragStartY == -1)
 		return;
 	processDrag(e);
