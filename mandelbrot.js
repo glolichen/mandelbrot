@@ -72,6 +72,8 @@ function clearTransforms(image) {
 }
 
 function draw() {
+	let start = new Date();
+
 	if (workerIsTerminated)
 		worker = new Worker("./worker.js");
 
@@ -98,11 +100,11 @@ function draw() {
 	}
 	input[2] = document.getElementById(FIELDS[2]).value;
 
-	let ctx = canvas.getContext("2d");
-	// let ctx = canvas.getContext("2d", { alpha: false });
-
+	// let ctx = canvas.getContext("2d");
+	let ctx = canvas.getContext("2d", { alpha: false });
 	let imgdata = ctx.getImageData(0, 0, width, height);
-	let imgdatalen = imgdata.data.length;
+
+	console.log(imgdata);
 
 	ctx.canvas.width = width;
 	ctx.canvas.height = height;
@@ -124,29 +126,18 @@ function draw() {
 	});
 
 	worker.onmessage = e => {
-		for (var i = 0; i < imgdatalen / 4; i++) {
-			imgdata.data[4 * i] = e.data[i].red;
-			imgdata.data[4 * i + 1] = e.data[i].green;
-			imgdata.data[4 * i + 2] = e.data[i].blue;
-			imgdata.data[4 * i + 3] = 255;
-		}
+		imgdata.data.set(e.data.processedColors);
 		ctx.putImageData(imgdata, 0, 0);
 		canvas.style.transform = "scale(1)";
 		canvas.className = "";
 		oldCanvasImage.className = "hidden";
 		clearTransforms(oldCanvasImage);
-		// scaleImage(oldCanvasImage, windowWidth / width, 0, 0);
 		// https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL
 		oldCanvasImage.src = canvas.toDataURL();
-		// this is weird - if there is no timeout here, there would be a very short period of time
-		// where the oldCanvasImage is not rendered and the canvas is hidden, creating a blank screen
-		// adding this delay to hide the canvas fixes this issue
 		oldCanvasImage.className = "";
-		// figure out how to make the canvas disappear after oldCanvasImage is rendered
-		// otherwise there is blank screen, and settimeout makes a period where you can't do anything
-		setTimeout(() => {
-			canvas.className = "hidden";
-		}, 1000);
+		
+		let end = new Date();
+		console.log(`total time: ${end - start}ms`);
 	}
 }
 

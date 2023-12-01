@@ -36,18 +36,20 @@ function waitOrDoStuff(e) {
 		console.log("begin doing stuff");
 		let rawColors = genMandelbrot(e.data.width, e.data.height, e.data.remin, e.data.immin, e.data.remax, 
 			e.data.immax, e.data.max_iters, e.data.threads, e.data.simd);
-		let processedColors = new Array(e.data.width * e.data.height);
+		let processedColors = new Uint8ClampedArray(e.data.width * e.data.height * 4);
 
 		for (let i = 0; i < e.data.width * e.data.height; i++) {
-		let color = rawColors[i];
-		processedColors[i] = {
-		red: red(color),
-		green: green(color),
-		blue: blue(color),
-		};
+			let color = rawColors[i];
+			processedColors[i * 4] = red(color);
+			processedColors[i * 4 + 1] = green(color);
+			processedColors[i * 4 + 2] = blue(color);
+			processedColors[i * 4 + 3] = 255;
 		}
 
-		postMessage(processedColors);
+		postMessage({
+			rawColors: rawColors,
+			processedColors: processedColors,
+		});
 	}
 }
 
