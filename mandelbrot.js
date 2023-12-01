@@ -104,8 +104,6 @@ function draw() {
 	let ctx = canvas.getContext("2d", { alpha: false });
 	let imgdata = ctx.getImageData(0, 0, width, height);
 
-	console.log(imgdata);
-
 	ctx.canvas.width = width;
 	ctx.canvas.height = height;
 
