@@ -5,6 +5,8 @@ function isInteger(str) {
 const FIELDS = ["iterations", "threads", "simd"];
 const SIMD = ["none", "sse", "wasm"];
 
+const frontLayer = document.getElementById("frontLayer");
+
 var recenter = 0;
 var redistance = 5;
 var imcenter = 0;
@@ -195,7 +197,7 @@ function processWheel(e) {
 	draw();
 }
 
-oldCanvasImage.onwheel = e => {
+frontLayer.onwheel = e => {
 	processWheel(e);
 };
 
@@ -229,11 +231,11 @@ function processDrag(e) {
 	draw();
 }
 
-oldCanvasImage.ondragstart = e => {
+frontLayer.ondragstart = e => {
 	dragStartX = e.clientX;
 	dragStartY = e.clientY;
 };
-oldCanvasImage.ondragend = e => {
+frontLayer.ondragend = e => {
 	if (dragStartX == -1 || dragStartY == -1)
 		return;
 	processDrag(e);
