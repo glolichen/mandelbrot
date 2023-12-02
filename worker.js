@@ -5,20 +5,20 @@ function blue(num) { return num & 255; }
 importScripts("./libmandel.js");
 
 const calculate_function = Module.cwrap(
-	'do_calculation_wasm_no_thread', 'void', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']
+	'do_calculation_wasm_no_thread', 'void', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']
 );
 // const calculate_function = Module.cwrap(
-// 	'do_calculation_wasm', 'void', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']
+// 	'do_calculation_wasm', 'void', ['number', 'number', 'number', 'number', 'number', 'number', 'number', 'number', 'number']
 // );
 
-function genMandelbrot(width, height, remin, immin, remax, immax, max_iters, thread_count, instructions) {
+function genMandelbrot(width, height, remin, immin, remax, immax, max_iters, thread_count, lastRawColors) {
 	let data = new Int32Array(new Array(width * height));
 	let nDataBytes = data.length * data.BYTES_PER_ELEMENT;
 	let dataPtr = Module._malloc(nDataBytes);
 	let dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, nDataBytes);
 	dataHeap.set(new Uint8Array(data.buffer));
 
-	calculate_function(dataHeap.byteOffset, width, height, remin, immin, remax, immax, max_iters, thread_count, instructions);
+	calculate_function(dataHeap.byteOffset, width, height, remin, immin, remax, immax, max_iters, thread_count);
 	dataHeap = new Uint8Array(Module.HEAPU8.buffer, dataPtr, nDataBytes);
 	let result = new Int32Array(dataHeap.buffer, dataHeap.byteOffset, data.length);
 
@@ -35,7 +35,7 @@ function waitOrDoStuff(e) {
 	else {
 		console.log("begin doing stuff");
 		let rawColors = genMandelbrot(e.data.width, e.data.height, e.data.remin, e.data.immin, e.data.remax, 
-			e.data.immax, e.data.max_iters, e.data.threads, e.data.simd);
+			e.data.immax, e.data.max_iters, e.data.threads, e.data.lastRawColors);
 		let processedColors = new Uint8ClampedArray(e.data.width * e.data.height * 4);
 
 		for (let i = 0; i < e.data.width * e.data.height; i++) {

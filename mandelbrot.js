@@ -2,8 +2,7 @@ function isInteger(str) {
 	return Number.isInteger(parseFloat(str));
 }
 
-const FIELDS = ["iterations", "threads", "simd"];
-const SIMD = ["none", "sse", "wasm"];
+const FIELDS = ["iterations", "threads"];
 
 const frontLayer = document.getElementById("frontLayer");
 
@@ -71,6 +70,8 @@ function clearTransforms(image) {
 	}
 }
 
+var lastRawColors = null;
+
 function draw() {
 	let start = new Date();
 
@@ -88,7 +89,7 @@ function draw() {
 	let immin = imcenter - imdistance;
 	let immax = imcenter + imdistance;
 
-	let input = new Array(3);
+	let input = new Array(2);
 	for (let i = 0; i < 2; i++) {
 		input[i] = document.getElementById(FIELDS[i]).value;
 		if (isInteger(input[i]) && parseInt(input[i]) > 0)
@@ -98,7 +99,6 @@ function draw() {
 			return;
 		}
 	}
-	input[2] = document.getElementById(FIELDS[2]).value;
 
 	// let ctx = canvas.getContext("2d");
 	let ctx = canvas.getContext("2d", { alpha: false });
@@ -106,10 +106,6 @@ function draw() {
 
 	ctx.canvas.width = width;
 	ctx.canvas.height = height;
-
-	let simd = SIMD.indexOf(input[2]);
-	if (simd == -1)
-		simd = 0;
 
 	worker.postMessage({
 		width: width,
@@ -120,11 +116,12 @@ function draw() {
 		immax: immax,
 		max_iters: input[0],
 		threads: input[1],
-		simd: simd,
+		lastRawColors: lastRawColors,
 	});
 
 	worker.onmessage = e => {
 		imgdata.data.set(e.data.processedColors);
+		lastRawColors = e.data.rawColors;
 		ctx.putImageData(imgdata, 0, 0);
 		canvas.style.transform = "scale(1)";
 		canvas.className = "";
