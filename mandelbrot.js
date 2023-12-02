@@ -71,8 +71,9 @@ function clearTransforms(image) {
 }
 
 var lastRawColors = null;
+var pastremin, pastimmin, pastremax, pastimmax;
 
-function draw() {
+function draw(usePast) {
 	let start = new Date();
 
 	if (workerIsTerminated)
@@ -116,18 +117,27 @@ function draw() {
 		immax: immax,
 		max_iters: input[0],
 		threads: input[1],
-		lastRawColors: lastRawColors,
+		lastRawColors: usePast ? lastRawColors : null,
+		pastremin: pastremin,
+		pastremax: pastremax,
+		pastimmin: pastimmin,
+		pastimmax: pastimmax,
 	});
 
 	worker.onmessage = e => {
 		imgdata.data.set(e.data.processedColors);
+
 		lastRawColors = e.data.rawColors;
+		pastremin = remin, pastremax = remax;
+		pastimmin = immin, pastimmax = immax;
+
 		ctx.putImageData(imgdata, 0, 0);
 		canvas.style.transform = "scale(1)";
 		canvas.className = "";
+
+		// https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL
 		oldCanvasImage.className = "hidden";
 		clearTransforms(oldCanvasImage);
-		// https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toDataURL
 		oldCanvasImage.src = canvas.toDataURL();
 		oldCanvasImage.className = "";
 		
@@ -138,7 +148,7 @@ function draw() {
 
 
 document.getElementById("generate").onclick = draw;
-draw();
+draw(false);
 
 // https://stackoverflow.com/questions/22427395/what-is-the-google-map-zoom-algorithm
 function processWheel(e) {
@@ -180,7 +190,7 @@ function processWheel(e) {
 	redistance = (right - left) / 2;
 	imcenter = (bottom + top) / 2;
 
-	draw();
+	draw(false);
 }
 
 frontLayer.onwheel = e => {
@@ -214,7 +224,7 @@ function processDrag(e) {
 	
 	dragStartX = -1, dragStartY = -1;
 
-	draw();
+	draw(true);
 }
 
 frontLayer.ondragstart = e => {

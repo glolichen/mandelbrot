@@ -17,6 +17,14 @@ typedef struct {
 	double remin, immax, realChange, imagChange;
 	int width, top_height, bottom_height, max_iters;
 } Arguments;
+typedef struct {
+	int *status;
+	double remin, immax, realChange, imagChange;
+	double pastremin, pastimmin, pastremax, pastimmax;
+	int *pastColors;
+	int width, top_height, bottom_height, max_iters;
+} ExtraArguments;
+
 
 extern int DIRECTION[4][2];
 

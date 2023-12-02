@@ -75,8 +75,34 @@ void do_calculation_wasm_no_thread(int *status, int width, int height,
 		.status = status, .remin = remin, .immax = immax, .realChange = realChange, .imagChange = imagChange,
 		.width = width, .top_height = 0, .bottom_height = height, .max_iters = max_iters
 	};
-
 	do_calculation_naive(&args);
+
+	clock_t difference = clock() - before;
+	int msec = difference * 1000 / CLOCKS_PER_SEC;
+
+	printf("calculation time: %dms\n", msec);		
+}
+
+void do_calculation_wasm_no_thread_with_past(int *status, int width, int height, 
+			  double remin, double immin, double remax, double immax,	
+			  int max_iters, int _, int *pastColors,
+			  double pastremin, double pastimmin, double pastremax, double pastimmax) {
+		
+	clock_t before = clock();
+
+	double realChange, imagChange;
+	realChange = (remax - remin) / width;
+	imagChange = (immax - immin) / height;
+
+	ExtraArguments args = {
+		.status = status, .remin = remin, .immax = immax, .realChange = realChange, .imagChange = imagChange,
+		.pastremin = pastremin, .pastimmin = pastimmin, .pastremax = pastremax, .pastimmax = pastimmax,
+		.pastColors = pastColors, .width = width, .top_height = 0, .bottom_height = height, .max_iters = max_iters
+	};
+
+	printf("todo\n");
+
+	do_calculation_naive_with_past((void *) &args);
 
 	clock_t difference = clock() - before;
 	int msec = difference * 1000 / CLOCKS_PER_SEC;

@@ -80,3 +80,75 @@ void *do_calculation_naive(void *arguments) {
 	free_linked_list(&linkedList);
 	return NULL;
 }
+
+void *do_calculation_naive_with_past(void *arguments) {	
+	ExtraArguments *args = (ExtraArguments *) arguments;
+
+	int iters;
+	double real, imag;
+
+	double pastRealChange, pastImagChange;
+	pastRealChange = (args->pastremax - args->pastremin) / args->width;
+	pastImagChange = (args->pastimmax - args->pastimmin) / (args->bottom_height - args->top_height);
+
+	printf("%d\n", args->pastColors[0]);
+
+	LinkedList linkedList; // either a stack or deque
+	make_linked_list(&linkedList);
+
+	for (int i = 0; i < args->width; i++) {
+		linked_list_add(&linkedList, args->top_height * (args->width - 1) + i);
+		args->status[args->top_height * (args->width - 1) + i] = 1;
+		linked_list_add(&linkedList, (args->bottom_height - 1) * args->width + i);
+		args->status[(args->bottom_height - 1) * args->width + i] = 1;
+	}
+	for (int i = args->top_height + 1; i < args->bottom_height - 1; i++) {
+		linked_list_add(&linkedList, i * args->width);
+		args->status[i * args->width] = 1;
+		linked_list_add(&linkedList, i * args->width + args->width - 1);
+		args->status[i * args->width + args->width - 1] = 1;
+	}
+
+	int cur, cx, cy, nx, ny, index, pastcx, pastcy;
+	while (linkedList.size != 0) {
+		cur = linked_list_pop_front(&linkedList);
+		cx = cur % args->width, cy = cur / args->width;
+
+		real = args->remin + args->realChange * cx;
+		imag = args->immax - args->imagChange * cy;
+
+		if (real > args->pastremin && real < args->pastremax &&
+			imag > args->pastimmin && imag < args->pastimmax) {
+
+			pastcx = (real - args->pastremin) / pastRealChange;
+			pastcy = (args->pastimmax - imag) / pastImagChange;
+
+			index = pastcy * args->width + pastcx;
+			if (index >= 0 && index < args->width * (args->bottom_height - args->top_height))
+				args->status[cur] = args->pastColors[index];
+		}
+		else {
+			imag = fabs(imag);
+			iters = get_iterations_naive(real, imag, args->max_iters);
+			args->status[cur] = iters;
+		}
+
+		if (args->status[cur] == 0)
+			continue;
+
+		for (int i = 0; i < 4; i++) {
+			nx = cx + DIRECTION[i][0];
+			ny = cy + DIRECTION[i][1];
+			if (nx < 0 || ny < args->top_height || nx >= args->width || ny >= args->bottom_height)	
+				continue;
+			index = ny * args->width + nx;
+			if (args->status[index] == 0) {
+				args->status[index] = 16777216;
+				linked_list_add(&linkedList, index);
+			}
+		}
+	}
+
+	free_linked_list(&linkedList);
+	return NULL;
+}
