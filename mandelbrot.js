@@ -147,7 +147,7 @@ function draw(usePast) {
 }
 
 
-document.getElementById("generate").onclick = draw;
+document.getElementById("generate").onclick = () => draw(false);
 draw(false);
 
 // https://stackoverflow.com/questions/22427395/what-is-the-google-map-zoom-algorithm

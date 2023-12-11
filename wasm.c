@@ -100,8 +100,6 @@ void do_calculation_wasm_no_thread_with_past(int *status, int width, int height,
 		.pastColors = pastColors, .width = width, .top_height = 0, .bottom_height = height, .max_iters = max_iters
 	};
 
-	printf("todo\n");
-
 	do_calculation_naive_with_past((void *) &args);
 
 	clock_t difference = clock() - before;

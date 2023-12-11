@@ -91,8 +91,6 @@ void *do_calculation_naive_with_past(void *arguments) {
 	pastRealChange = (args->pastremax - args->pastremin) / args->width;
 	pastImagChange = (args->pastimmax - args->pastimmin) / (args->bottom_height - args->top_height);
 
-	printf("%d\n", args->pastColors[0]);
-
 	LinkedList linkedList; // either a stack or deque
 	make_linked_list(&linkedList);
 
@@ -109,7 +107,8 @@ void *do_calculation_naive_with_past(void *arguments) {
 		args->status[i * args->width + args->width - 1] = 1;
 	}
 
-	int cur, cx, cy, nx, ny, index, pastcx, pastcy;
+	int cur, cx, cy, nx, ny, index;
+	double pastcx, pastcy, doubleIndex;
 	while (linkedList.size != 0) {
 		cur = linked_list_pop_front(&linkedList);
 		cx = cur % args->width, cy = cur / args->width;
@@ -123,9 +122,9 @@ void *do_calculation_naive_with_past(void *arguments) {
 			pastcx = (real - args->pastremin) / pastRealChange;
 			pastcy = (args->pastimmax - imag) / pastImagChange;
 
-			index = pastcy * args->width + pastcx;
-			if (index >= 0 && index < args->width * (args->bottom_height - args->top_height))
-				args->status[cur] = args->pastColors[index];
+			doubleIndex = pastcy * args->width + pastcx;
+			if (doubleIndex > 0 && doubleIndex < args->width * (args->bottom_height - args->top_height))
+				args->status[cur] = args->pastColors[(int) doubleIndex];
 		}
 		else {
 			imag = fabs(imag);
